@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - NOPE CRM</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --azul-principal: #339DD9; --chumbo-escuro: #1A1A1A; --fundo: #F4F7F6; --branco: #FFFFFF; --cinza-borda: #E0E0E0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { background-color: var(--fundo); height: 100vh; display: flex; justify-content: center; align-items: center; }
+        
+        .login-container { background: var(--branco); padding: 40px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        
+        .logo { font-size: 2rem; color: var(--chumbo-escuro); margin-bottom: 30px; font-weight: bold; }
+        .logo span { color: var(--azul-principal); }
+        
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; font-size: 0.9rem; font-weight: 600; color: var(--chumbo-escuro); margin-bottom: 8px; }
+        .input-group input { width: 100%; padding: 12px; border: 1px solid var(--cinza-borda); border-radius: 6px; font-size: 1rem; outline: none; transition: border 0.3s; }
+        .input-group input:focus { border-color: var(--azul-principal); }
+        
+        .btn-login { width: 100%; background-color: var(--azul-principal); color: var(--branco); border: none; padding: 12px; font-size: 1rem; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background 0.3s; margin-top: 10px; }
+        .btn-login:hover { background-color: #2880B3; }
+        
+        .erro-msg { color: #E3342F; font-size: 0.85rem; margin-top: 15px; display: none; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <div class="logo"><span>N</span>OPE CRM</div>
+        
+        <div class="input-group">
+            <label>E-mail de Acesso</label>
+            <input type="email" id="email" placeholder="seu@email.com">
+        </div>
+        
+        <div class="input-group">
+            <label>Senha</label>
+            <input type="password" id="senha" placeholder="••••••••">
+        </div>
+
+        <button class="btn-login" onclick="fazerLogin()">Entrar no Sistema</button>
+        <div class="erro-msg" id="mensagemErro">E-mail ou senha incorretos.</div>
+    </div>
+
+    <script>
+        // Configuração do Supabase
+        const supabaseUrl = 'https://flhefrapcznmkumvxrdf.supabase.co';
+        const supabaseKey = 'sb_publishable_mbe3nl2qggrFGt0w-JSaDw_i2BhuOxF';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Verifica se já está logado e manda direto pro painel
+        async function verificarSessao() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                window.location.href = 'painel/index.html';
+            }
+        }
+        verificarSessao();
+
+        // Função de Login
+        async function fazerLogin() {
+            const email = document.getElementById('email').value;
+            const senha = document.getElementById('senha').value;
+            const msgErro = document.getElementById('mensagemErro');
+
+            if (!email || !senha) {
+                msgErro.innerText = "Preencha todos os campos.";
+                msgErro.style.display = "block";
+                return;
+            }
+
+            // Tenta logar no Supabase
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: senha,
+            });
+
+            if (error) {
+                msgErro.innerText = "E-mail ou senha incorretos.";
+                msgErro.style.display = "block";
+            } else {
+                // Login com sucesso, redireciona pro Painel
+                window.location.href = 'painel/index.html';
+            }
+        }
+    </script>
+</body>
+</html>

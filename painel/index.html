@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Leads - NOPE Design</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root { --azul-principal: #339DD9; --azul-hover: #2880B3; --chumbo-escuro: #1A1A1A; --chumbo-claro: #2C2C2C; --fundo: #F4F7F6; --branco: #FFFFFF; --cinza-borda: #E0E0E0; --texto-cinza: #555555; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--fundo); color: var(--chumbo-escuro); height: 100vh; display: flex; overflow: hidden; }
+
+        .sidebar { width: 260px; background-color: var(--chumbo-escuro); color: var(--branco); display: flex; flex-direction: column; z-index: 10; }
+        .sidebar-logo { padding: 20px; border-bottom: 1px solid var(--chumbo-claro); }
+        .sidebar-logo h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 5px; }
+        .sidebar-logo h1 span { color: var(--azul-principal); }
+        .sidebar-nav { padding: 20px 10px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #CCCCCC; text-decoration: none; border-radius: 8px; transition: 0.3s; }
+        .nav-link:hover, .nav-link.active { background-color: var(--chumbo-claro); color: var(--branco); }
+        .nav-link.active { border-left: 4px solid var(--azul-principal); }
+
+        .content-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        header { background-color: var(--branco); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--cinza-borda); }
+        .header-title { font-size: 1.3rem; }
+        .header-actions { display: flex; gap: 10px; }
+        button { cursor: pointer; border: none; font-weight: bold; border-radius: 5px; padding: 10px 15px; transition: 0.3s; color: var(--branco); }
+        .btn-novo { background-color: var(--azul-principal); }
+        .btn-novo:hover { background-color: var(--azul-hover); }
+        .btn-importar { background-color: #28a745; }
+        .btn-importar:hover { background-color: #218838; }
+
+        .filters-bar { background-color: var(--branco); padding: 10px 30px; display: flex; gap: 20px; border-bottom: 1px solid var(--cinza-borda); align-items: center; }
+        .filter-group { display: flex; align-items: center; gap: 8px; }
+        .filter-group label { font-size: 0.9rem; font-weight: 600; color: var(--chumbo-escuro); }
+        .filter-group input { padding: 6px 10px; border: 1px solid var(--cinza-borda); border-radius: 4px; outline: none; font-size: 0.9rem; }
+        .filter-group input:focus { border-color: var(--azul-principal); }
+        .btn-limpar { background-color: #e0e0e0; color: #333; padding: 6px 12px; font-size: 0.85rem; }
+        
+        /* BOTÕES DE ALTERNAR VISUALIZAÇÃO */
+        .view-toggle { display: flex; gap: 5px; margin-left: auto; background: var(--fundo); padding: 4px; border-radius: 6px; border: 1px solid var(--cinza-borda); }
+        .btn-view { padding: 6px 12px; border: none; background: transparent; cursor: pointer; border-radius: 4px; font-size: 0.85rem; transition: 0.3s; font-weight: 600; color: var(--texto-cinza); }
+        .btn-view.active { background: var(--branco); color: var(--azul-principal); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+        /* VIEW KANBAN */
+        .board { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; padding: 30px; flex: 1; overflow-y: auto; }
+        .coluna { background-color: var(--branco); border-radius: 8px; display: flex; flex-direction: column; border: 1px solid var(--cinza-borda); max-height: calc(100vh - 190px); }
+        .coluna-header { padding: 18px 20px; border-bottom: 1px solid var(--fundo); display: flex; justify-content: space-between; align-items: center; }
+        .contador { background-color: var(--fundo); padding: 4px 12px; border-radius: 12px; font-size: 0.9rem; font-weight: bold; border: 1px solid var(--cinza-borda); }
+        .lista-cards { padding: 20px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+
+        .card { background-color: var(--branco); border: 1px solid var(--cinza-borda); border-left: 5px solid var(--azul-principal); border-radius: 8px; padding: 18px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+        .card h3 { font-size: 1.15rem; margin-bottom: 5px; color: var(--chumbo-escuro); }
+        .telefone { display: inline-flex; align-items: center; gap: 6px; font-size: 0.95rem; color: var(--chumbo-escuro); margin-bottom: 15px; font-weight: 600; background: #F8F9FA; padding: 4px 10px; border-radius: 6px; border: 1px solid #E9ECEF; }
+        .lead-details { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; font-size: 0.85rem; color: #444; }
+        .detail-item { background: #F8F9FA; padding: 8px; border-radius: 4px; border: 1px solid #E9ECEF; }
+        .detail-item strong { color: var(--azul-principal); display: block; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 2px; }
+        .obs-box { font-size: 0.85rem; color: #4A4A4A; background: #FFF9C4; padding: 10px; border-left: 4px solid #FBC02D; margin-bottom: 15px; border-radius: 4px; line-height: 1.4; }
+        
+        .card-actions { display: flex; gap: 10px; align-items: center; margin-top: 10px; padding-top: 15px; border-top: 1px dashed var(--cinza-borda); }
+        .select-corretora { padding: 8px; border-radius: 4px; border: 1px solid var(--cinza-borda); flex: 1; font-size: 0.9rem; outline: none; }
+        .btn-enviar { background-color: var(--chumbo-escuro); padding: 9px 18px; border-radius: 4px; }
+        
+        /* VIEW TABELA */
+        .table-container { padding: 25px 30px; flex: 1; overflow-y: auto; display: none; }
+        .leads-table { width: 100%; border-collapse: collapse; background: var(--branco); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid var(--cinza-borda); }
+        .leads-table th, .leads-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--cinza-borda); font-size: 0.85rem; }
+        .leads-table th { background-color: var(--fundo); color: var(--chumbo-escuro); font-weight: bold; text-transform: uppercase; font-size: 0.8rem; }
+        .leads-table tr:hover { background-color: #F8F9FA; }
+        .leads-table td.td-acoes { display: flex; gap: 5px; }
+
+        .tag-corretora { display: inline-block; padding: 5px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; color: var(--branco); text-transform: uppercase; }
+        .tag-brand { background-color: #E3342F; } .tag-bvpinho { background-color: #F6993F; } .tag-dcteodoro { background-color: #38C172; } 
+        .tag-aguiar { background-color: #00BCD4; } .tag-caslu { background-color: #9C27B0; } .tag-lumenza { background-color: #E91E63; } 
+        .tag-outra { background-color: var(--chumbo-escuro); }
+
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 12px; position: fixed; z-index: 1000; left: 50%; transform: translateX(-50%); bottom: 30px; font-size: 0.9rem; opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
+        #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+
+        .modal-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
+        .modal { background: var(--branco); padding: 30px; border-radius: 8px; width: 450px; }
+        .modal h2 { margin-bottom: 20px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
+        .input-group input { width: 100%; padding: 10px; border: 1px solid var(--cinza-borda); border-radius: 5px; }
+        .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-cancelar { background: #ccc; color: #333; }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-logo"><h1><span>N</span>OPE CRM</h1></div>
+        <nav class="sidebar-nav">
+            <!-- CAMINHOS CORRIGIDOS AQUI -->
+            <a href="../dashboard/dashboard.html" class="nav-link"><span>📊</span> Dashboard</a>
+            <a href="#" class="nav-link active"><span>👥</span> Gestão de Leads</a>
+            <a href="../rotina/index.html" class="nav-link"><span>🗓️</span> Minha Rotina</a>
+            <a href="#" onclick="fazerLogout()" class="nav-link" style="margin-top: auto;"><span>🚪</span> Sair</a>
+        </nav>
+    </aside>
+
+    <div class="content-wrapper">
+        <header>
+            <h2 class="header-title">Fluxo de Envios</h2>
+            <div class="header-actions">
+                <input type="file" id="uploadExcel" accept=".xlsx, .xls" style="display: none;" onchange="processarPlanilha(event)">
+                <button class="btn-importar" onclick="document.getElementById('uploadExcel').click()">📤 Importar Excel</button>
+                <button class="btn-novo" onclick="abrirModal()">+ Novo Lead</button>
+            </div>
+        </header>
+
+        <div class="filters-bar">
+            <div class="filter-group"><label>📞 Filtrar DDD:</label><input type="text" id="filterDDD" placeholder="Ex: 11" maxlength="2" onkeyup="renderizarLeads()" style="width: 70px; text-align: center;"></div>
+            <div class="filter-group"><label>📅 Data de Entrada:</label><input type="date" id="filterData" onchange="renderizarLeads()"></div>
+            <button class="btn-limpar" onclick="limparFiltros()">Limpar Filtros</button>
+            
+            <!-- ALTERNAR VISUALIZAÇÃO -->
+            <div class="view-toggle">
+                <button class="btn-view active" id="btn-view-kanban" onclick="mudarView('kanban')">🖼️ Cards</button>
+                <button class="btn-view" id="btn-view-tabela" onclick="mudarView('tabela')">📋 Tabela</button>
+            </div>
+        </div>
+
+        <!-- MODO CARDS (KANBAN) -->
+        <main class="board" id="view-kanban">
+            <section class="coluna"><div class="coluna-header"><h2>Para Envio</h2><span class="contador" id="count-envio">0</span></div><div class="lista-cards" id="lista-envio"></div></section>
+            <section class="coluna"><div class="coluna-header"><h2>Enviados</h2><span class="contador" id="count-enviados">0</span></div><div class="lista-cards" id="lista-enviados"></div></section>
+        </main>
+
+        <!-- MODO TABELA -->
+        <div class="table-container" id="view-tabela">
+            <table class="leads-table">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>WhatsApp</th>
+                        <th>Data</th>
+                        <th>Cidade</th>
+                        <th>Vidas</th>
+                        <th>CNPJ</th>
+                        <th>Plano</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="lista-tabela">
+                    <!-- JS vai popular a tabela -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="toast">✅ Texto copiado! Pronto para colar no WhatsApp.</div>
+
+        <div class="modal-overlay" id="modalNovoLead">
+            <div class="modal">
+                <h2>Adicionar Novo Lead</h2>
+                <div class="input-group"><label>Nome do Lead *</label><input type="text" id="inputNome"></div>
+                <div class="input-group"><label>WhatsApp (Com DDD) *</label><input type="text" id="inputNumero" placeholder="(11) 99999-9999"></div>
+                <div class="modal-grid">
+                    <div class="input-group"><label>Vidas (Qtd)</label><input type="text" id="inputVidas"></div>
+                    <div class="input-group"><label>Possui CNPJ?</label><input type="text" id="inputCnpj" placeholder="Sim ou Não"></div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
+                    <button class="btn-novo" onclick="salvarLeadManual()">Salvar Lead</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://flhefrapcznmkumvxrdf.supabase.co';
+        const supabaseKey = 'sb_publishable_mbe3nl2qggrFGt0w-JSaDw_i2BhuOxF';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // CAMINHO DO LOGIN CORRIGIDO AQUI EMBAIXO
+        async function protegerTela() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = '../index.html'; } else { carregarLeads(); }
+        }
+        protegerTela();
+
+        // CAMINHO DO LOGIN CORRIGIDO AQUI EMBAIXO
+        async function fazerLogout() { await supabaseClient.auth.signOut(); window.location.href = '../index.html'; }
+
+        let leads = [];
+
+        function limparNumero(num) { return num ? String(num).replace(/\D/g, '') : ''; }
+        function formatarTelefone(telefone) {
+            if (!telefone) return '';
+            const limpo = String(telefone).replace(/\D/g, '');
+            if (limpo.length === 11) return `(${limpo.substring(0,2)}) ${limpo.substring(2,7)}-${limpo.substring(7,11)}`;
+            if (limpo.length === 10) return `(${limpo.substring(0,2)}) ${limpo.substring(2,6)}-${limpo.substring(6,10)}`;
+            return telefone; 
+        }
+        function formatarDado(valor) { return (!valor || String(valor).toLowerCase() === 'nan' || String(valor).trim() === '') ? '-' : valor; }
+
+        function mostrarToast() {
+            const toast = document.getElementById("toast");
+            toast.className = "show"; setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+        function limparFiltros() { document.getElementById('filterDDD').value = ''; document.getElementById('filterData').value = ''; renderizarLeads(); }
+
+        function mudarView(view) {
+            document.getElementById('view-kanban').style.display = view === 'kanban' ? 'grid' : 'none';
+            document.getElementById('view-tabela').style.display = view === 'tabela' ? 'block' : 'none';
+            document.getElementById('btn-view-kanban').classList.toggle('active', view === 'kanban');
+            document.getElementById('btn-view-tabela').classList.toggle('active', view === 'tabela');
+        }
+
+        async function carregarLeads() {
+            let todosLeads = []; let limite = 1000; let inicio = 0; let temMais = true;
+            while (temMais) {
+                const { data, error } = await supabaseClient.from('leads').select('*').order('id', { ascending: false }).range(inicio, inicio + limite - 1);
+                if (error) { break; } todosLeads = todosLeads.concat(data);
+                if (data.length < limite) { temMais = false; } else { inicio += limite; }
+            }
+            leads = todosLeads; renderizarLeads();
+        }
+
+        function renderizarLeads() {
+            const cEnvio = document.getElementById('lista-envio'); const cEnviados = document.getElementById('lista-enviados');
+            const cTabela = document.getElementById('lista-tabela');
+            
+            cEnvio.innerHTML = ''; cEnviados.innerHTML = ''; cTabela.innerHTML = '';
+            let contEnvio = 0, contEnviados = 0;
+
+            const filtroDDD = document.getElementById('filterDDD').value.trim(); const filtroData = document.getElementById('filterData').value;
+            const leadsFiltrados = leads.filter(lead => {
+                let passaDDD = true; let passaData = true;
+                if (filtroDDD) passaDDD = lead.whatsapp && lead.whatsapp.startsWith(filtroDDD);
+                if (filtroData) passaData = lead.created_at && lead.created_at.startsWith(filtroData);
+                return passaDDD && passaData;
+            });
+
+            leadsFiltrados.forEach(lead => {
+                const telVisual = formatarTelefone(lead.whatsapp);
+                const valData = lead.created_at ? new Date(lead.created_at).toLocaleDateString('pt-BR') : '-';
+                const valCidade = formatarDado(lead.cidade);
+                const valVidas = formatarDado(lead.quantidade_vidas);
+                const valCnpj = formatarDado(lead.possui_cnpj);
+                const valPlano = formatarDado(lead.tem_plano);
+                const valObs = formatarDado(lead.observacao);
+
+                const card = document.createElement('div'); card.className = 'card';
+                const infoHTML = `
+                    <div class="lead-details">
+                        <div class="detail-item" style="grid-column: span 2;"><strong>📅 Adicionado em</strong> ${valData}</div>
+                        <div class="detail-item"><strong>📍 Cidade</strong> ${valCidade}</div><div class="detail-item"><strong>👥 Qtd Vidas</strong> ${valVidas}</div>
+                        <div class="detail-item"><strong>🏢 Possui CNPJ?</strong> ${valCnpj}</div><div class="detail-item"><strong>🏥 Já tem plano?</strong> ${valPlano}</div>
+                    </div>
+                    <div class="obs-box"><strong>Nota/Obs:</strong> ${valObs}</div>`;
+
+                if (lead.status === 'para_envio') {
+                    contEnvio++;
+                    card.innerHTML = `<h3>${lead.nome}</h3><div class="telefone">📞 ${telVisual}</div>${infoHTML}
+                    <div class="card-actions">
+                        <select class="select-corretora" id="select-kanban-${lead.id}">
+                            <option value="" disabled selected>Selecionar...</option><option value="Aguiar Corretora">Aguiar Corretora</option><option value="BV Pinho">BV Pinho</option><option value="Brand Seguros">Brand Seguros</option><option value="Corretora Caslu">Corretora Caslu</option><option value="DC Teodoro">DC Teodoro</option><option value="Lumenza">Lumenza</option><option value="Outra">Outra</option>
+                        </select>
+                        <button class="btn-enviar" onclick="moverParaEnviado(${lead.id}, 'kanban')">Enviar</button>
+                    </div>`;
+                    cEnvio.appendChild(card);
+                } else {
+                    contEnviados++;
+                    let t = 'tag-outra'; if(lead.corretora === 'Brand Seguros') t = 'tag-brand'; else if(lead.corretora === 'BV Pinho') t = 'tag-bvpinho'; else if(lead.corretora === 'DC Teodoro') t = 'tag-dcteodoro'; else if(lead.corretora === 'Aguiar Corretora') t = 'tag-aguiar'; else if(lead.corretora === 'Corretora Caslu') t = 'tag-caslu'; else if(lead.corretora === 'Lumenza') t = 'tag-lumenza';
+                    card.innerHTML = `<span class="tag-corretora ${t}" style="margin-bottom:0;">${lead.corretora || 'Enviado'}</span><h3>${lead.nome}</h3><div class="telefone">📞 ${telVisual}</div>${infoHTML}`;
+                    cEnviados.appendChild(card);
+                }
+
+                const tr = document.createElement('tr');
+                let statusTable = ''; let acoesTable = '';
+
+                if (lead.status === 'para_envio') {
+                    statusTable = `<strong style="color: #F6993F;">Pendente</strong>`;
+                    acoesTable = `
+                        <select id="select-tabela-${lead.id}" style="padding: 5px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.8rem; outline: none;">
+                            <option value="" disabled selected>Corretora...</option><option value="Aguiar Corretora">Aguiar</option><option value="BV Pinho">BV Pinho</option><option value="Brand Seguros">Brand</option><option value="Corretora Caslu">Caslu</option><option value="DC Teodoro">Teodoro</option><option value="Lumenza">Lumenza</option><option value="Outra">Outra</option>
+                        </select>
+                        <button style="background: var(--chumbo-escuro); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;" onclick="moverParaEnviado(${lead.id}, 'tabela')">Enviar</button>
+                    `;
+                } else {
+                    let t = 'tag-outra'; if(lead.corretora === 'Brand Seguros') t = 'tag-brand'; else if(lead.corretora === 'BV Pinho') t = 'tag-bvpinho'; else if(lead.corretora === 'DC Teodoro') t = 'tag-dcteodoro'; else if(lead.corretora === 'Aguiar Corretora') t = 'tag-aguiar'; else if(lead.corretora === 'Corretora Caslu') t = 'tag-caslu'; else if(lead.corretora === 'Lumenza') t = 'tag-lumenza';
+                    statusTable = `<span class="tag-corretora ${t}" style="margin:0;">${lead.corretora}</span>`;
+                    acoesTable = `<span style="color: #38C172; font-weight: bold;">✔ Enviado</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td><strong>${lead.nome}</strong></td>
+                    <td>${telVisual}</td>
+                    <td>${valData}</td>
+                    <td>${valCidade}</td>
+                    <td>${valVidas}</td>
+                    <td>${valCnpj}</td>
+                    <td>${valPlano}</td>
+                    <td>${statusTable}</td>
+                    <td class="td-acoes">${acoesTable}</td>
+                `;
+                cTabela.appendChild(tr);
+            });
+
+            document.getElementById('count-envio').innerText = contEnvio; document.getElementById('count-enviados').innerText = contEnviados;
+        }
+
+        async function moverParaEnviado(id, view) {
+            const selectId = view === 'tabela' ? `select-tabela-${id}` : `select-kanban-${id}`;
+            const corretoraEscolhida = document.getElementById(selectId).value;
+            
+            if (!corretoraEscolhida) return alert("Selecione uma corretora antes de enviar!");
+            
+            const lead = leads.find(l => l.id === id);
+            const textoParaCopiar = `Nome: ${lead.nome}\nWhatsApp: ${formatarTelefone(lead.whatsapp)}\nIdades: ${formatarDado(lead.quantidade_vidas)}\nCidade: ${formatarDado(lead.cidade)}\nTem CNPJ: ${formatarDado(lead.possui_cnpj)}\nTem plano: ${formatarDado(lead.tem_plano)}`;
+            try { await navigator.clipboard.writeText(textoParaCopiar); mostrarToast(); } catch (err) { alert("Erro ao copiar o texto automaticamente."); }
+            await supabaseClient.from('leads').update({ status: 'enviado', corretora: corretoraEscolhida, data_envio: new Date().toISOString() }).eq('id', id);
+            carregarLeads();
+        }
+
+        function processarPlanilha(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
+                const rawLeads = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                const insertData = rawLeads.map(row => { return { nome: row['NOME'] || 'Sem Nome', whatsapp: limparNumero(row['WHATSAPP']), cidade: row['cidade'] || null, quantidade_vidas: row['QUANTIDADE DE VIDAS'] ? String(row['QUANTIDADE DE VIDAS']) : null, possui_cnpj: row['POSSUI CNPJ'] || null, tem_plano: row['JÁ TEM PLANO? SE SIM QUAL?'] || null, observacao: row['OBSERVAÇÃO'] || null, corretora: row['Enviados corretora'] || null, status: row['Enviados corretora'] ? 'enviado' : 'para_envio' }; }).filter(lead => lead.whatsapp !== ''); 
+                const { error } = await supabaseClient.from('leads').upsert(insertData, { onConflict: 'whatsapp', ignoreDuplicates: true });
+                if(error) alert("Erro ao importar a planilha."); else { alert("Importação concluída!"); carregarLeads(); }
+                event.target.value = ''; 
+            }; reader.readAsArrayBuffer(file);
+        }
+
+        async function salvarLeadManual() {
+            const nome = document.getElementById('inputNome').value; const numeroBruto = document.getElementById('inputNumero').value;
+            if(!nome || !numeroBruto) return alert("Nome e WhatsApp obrigatórios!");
+            const { error } = await supabaseClient.from('leads').insert([{ nome: nome, whatsapp: limparNumero(numeroBruto), quantidade_vidas: document.getElementById('inputVidas').value, possui_cnpj: document.getElementById('inputCnpj').value, status: 'para_envio' }]);
+            if (error) { error.code === '23505' ? alert("Número já cadastrado!") : alert("Erro ao salvar."); } else { fecharModal(); carregarLeads(); }
+        }
+
+        function abrirModal() { document.getElementById('modalNovoLead').style.display = 'flex'; }
+        function fecharModal() { document.getElementById('modalNovoLead').style.display = 'none'; }
+    </script>
+</body>
+</html>

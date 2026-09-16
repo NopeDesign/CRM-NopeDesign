@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotina - NOPE CRM</title>
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- FullCalendar -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    
+    <style>
+        :root { --azul-principal: #339DD9; --azul-hover: #2880B3; --chumbo-escuro: #1A1A1A; --chumbo-claro: #2C2C2C; --fundo: #F4F7F6; --branco: #FFFFFF; --cinza-borda: #E0E0E0; --texto-cinza: #555555; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--fundo); color: var(--chumbo-escuro); height: 100vh; display: flex; overflow: hidden; }
+
+        .sidebar { width: 260px; background-color: var(--chumbo-escuro); color: var(--branco); display: flex; flex-direction: column; z-index: 10; }
+        .sidebar-logo { padding: 20px; border-bottom: 1px solid var(--chumbo-claro); }
+        .sidebar-logo h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 5px; }
+        .sidebar-logo h1 span { color: var(--azul-principal); }
+        .sidebar-nav { padding: 20px 10px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #CCCCCC; text-decoration: none; border-radius: 8px; transition: 0.3s; }
+        .nav-link:hover, .nav-link.active { background-color: var(--chumbo-claro); color: var(--branco); }
+        .nav-link.active { border-left: 4px solid var(--azul-principal); }
+
+        .content-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--fundo); }
+        header { background-color: var(--branco); padding: 15px 30px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--cinza-borda); }
+        .header-title { font-size: 1.3rem; margin-right: auto; }
+        
+        .btn-novo { background-color: var(--azul-principal); color: var(--branco); border: none; padding: 10px 15px; font-weight: bold; border-radius: 5px; cursor: pointer; transition: 0.3s; }
+        .btn-novo:hover { background-color: var(--azul-hover); }
+
+        .view-toggle { display: flex; gap: 5px; background: var(--fundo); padding: 4px; border-radius: 6px; border: 1px solid var(--cinza-borda); }
+        .btn-view { padding: 6px 12px; border: none; background: transparent; cursor: pointer; border-radius: 4px; font-size: 0.85rem; transition: 0.3s; font-weight: 600; color: var(--texto-cinza); }
+        .btn-view.active { background: var(--branco); color: var(--azul-principal); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+        /* QUADRO */
+        .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 30px; flex: 1; overflow-y: auto; }
+        .coluna { background-color: #EAECEE; border-radius: 8px; display: flex; flex-direction: column; max-height: calc(100vh - 100px); }
+        .coluna-header { padding: 15px; font-size: 1.05rem; font-weight: bold; border-bottom: 2px solid var(--cinza-borda); }
+        .lista-tarefas { padding: 15px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+
+        .tarefa-card { background: var(--branco); border-radius: 6px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid var(--cinza-borda); position: relative; }
+        .tarefa-card.urgente { border-left-color: #E3342F; } .tarefa-card.normal { border-left-color: var(--azul-principal); }
+        .tarefa-card.repeticao { border-left-color: #9C27B0; }
+        
+        .tarefa-card h4 { font-size: 1rem; margin-bottom: 5px; color: var(--chumbo-escuro); cursor: pointer; }
+        .tarefa-card h4:hover { color: var(--azul-principal); text-decoration: underline; }
+        .tarefa-card p { font-size: 0.85rem; color: var(--texto-cinza); margin-bottom: 10px; line-height: 1.4; }
+        .badge-info { display: inline-block; font-size: 0.75rem; background: #F0F4F8; color: #334E68; padding: 4px 8px; border-radius: 4px; font-weight: bold; margin-right: 5px; margin-bottom: 5px;}
+        
+        .tarefa-actions { margin-top: 10px; display: flex; gap: 5px; border-top: 1px dashed var(--cinza-borda); padding-top: 10px; }
+        .btn-acao { padding: 4px 8px; font-size: 0.75rem; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-acao.fazer { background: var(--azul-principal); color: white; }
+        .btn-acao.concluir { background: #38C172; color: white; }
+
+        /* CALENDÁRIO */
+        #view-calendar { display: none; padding: 20px; flex: 1; overflow-y: auto; background: var(--branco); margin: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .fc-event { cursor: pointer; padding: 2px 4px; border: none !important; border-radius: 4px; font-size: 0.8rem; font-weight: bold;}
+        .fc-event:hover { opacity: 0.8; }
+
+        /* MODAL */
+        .modal-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
+        .modal { background: var(--branco); padding: 30px; border-radius: 8px; width: 450px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
+        .input-group input, .input-group textarea, .input-group select { width: 100%; padding: 10px; border: 1px solid var(--cinza-borda); border-radius: 5px; font-family: inherit; outline: none;}
+        .input-group select:focus { border-color: var(--azul-principal); }
+        
+        .dias-checkboxes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        .dias-checkboxes label { font-weight: normal; font-size: 0.85rem; display: flex; align-items: center; gap: 5px; background: #f0f0f0; padding: 5px 10px; border-radius: 4px; cursor: pointer;}
+        
+        .modal-actions { display: flex; gap: 10px; margin-top: 25px; align-items: center; }
+        .btn-excluir-modal { background: #E3342F; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; margin-right: auto; font-weight: bold; display: none; }
+        .btn-cancelar { background: #ccc; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-logo"><h1><span>N</span>OPE CRM</h1></div>
+        <nav class="sidebar-nav">
+            <a href="../dashboard/dashboard.html" class="nav-link"><span>📊</span> Dashboard</a>
+            <a href="../painel/index.html" class="nav-link"><span>👥</span> Gestão de Leads</a>
+            <a href="#" class="nav-link active"><span>🗓️</span> Minha Rotina</a>
+            <a href="#" onclick="fazerLogout()" class="nav-link" style="margin-top: auto;"><span>🚪</span> Sair</a>
+        </nav>
+    </aside>
+
+    <div class="content-wrapper">
+        <header>
+            <h2 class="header-title">Organização e Demandas</h2>
+            
+            <div class="view-toggle">
+                <button class="btn-view active" id="btn-view-kanban" onclick="mudarView('kanban')">🖼️ Quadro (Hoje)</button>
+                <button class="btn-view" id="btn-view-calendar" onclick="mudarView('calendar')">📅 Calendário</button>
+            </div>
+
+            <button class="btn-novo" onclick="abrirModal()">+ Nova Tarefa</button>
+        </header>
+
+        <!-- VISÃO QUADRO -->
+        <main class="board" id="view-kanban">
+            <section class="coluna"><div class="coluna-header">📝 A Fazer Hoje</div><div class="lista-tarefas" id="col-pendente"></div></section>
+            <section class="coluna"><div class="coluna-header">⏳ Em Andamento</div><div class="lista-tarefas" id="col-fazendo"></div></section>
+            <section class="coluna"><div class="coluna-header">✅ Concluído</div><div class="lista-tarefas" id="col-concluido"></div></section>
+        </main>
+
+        <!-- VISÃO CALENDÁRIO -->
+        <div id="view-calendar">
+            <div id="calendar"></div>
+        </div>
+
+        <!-- MODAL NOVA TAREFA / EDIÇÃO -->
+        <div class="modal-overlay" id="modalNovaTarefa">
+            <div class="modal">
+                <h2 id="modal-titulo">Adicionar Demanda / Rotina</h2>
+                
+                <div class="input-group">
+                    <label>Título (Ex: Reunião BV Pinho)</label>
+                    <input type="text" id="inputTitulo">
+                </div>
+                
+                <div class="input-group">
+                    <label>Repetição da Tarefa</label>
+                    <select id="inputRecorrencia" onchange="verificarRecorrencia()">
+                        <option value="unica">Apenas uma vez (Data Específica)</option>
+                        <option value="diaria">Rotina (Todos os dias)</option>
+                        <option value="semanal">Rotina (Dias específicos da semana)</option>
+                    </select>
+                </div>
+
+                <div class="input-group" id="boxData">
+                    <label>Data de Início / Limite</label>
+                    <input type="date" id="inputData">
+                </div>
+
+                <div class="input-group" id="boxDias" style="display: none;">
+                    <label>Selecione os dias da semana:</label>
+                    <div class="dias-checkboxes">
+                        <label><input type="checkbox" value="1"> Seg</label>
+                        <label><input type="checkbox" value="2"> Ter</label>
+                        <label><input type="checkbox" value="3"> Qua</label>
+                        <label><input type="checkbox" value="4"> Qui</label>
+                        <label><input type="checkbox" value="5"> Sex</label>
+                        <label><input type="checkbox" value="6"> Sáb</label>
+                        <label><input type="checkbox" value="0"> Dom</label>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Descrição / Detalhes (Opcional)</label>
+                    <textarea id="inputDesc" rows="2"></textarea>
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="btn-excluir-modal" id="btnExcluirModal" onclick="excluirTarefaModal()">🗑️ Excluir Tarefa</button>
+                    <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
+                    <button class="btn-novo" onclick="salvarTarefa()">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://flhefrapcznmkumvxrdf.supabase.co';
+        const supabaseKey = 'sb_publishable_mbe3nl2qggrFGt0w-JSaDw_i2BhuOxF';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        let calendarInstance = null;
+        let listaTarefasGlobais = [];
+        let tarefaEditandoId = null; 
+
+        // Caminhos corrigidos para a raiz
+        async function protegerTela() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = '../index.html'; } else { carregarTarefas(); }
+        }
+        protegerTela();
+
+        async function fazerLogout() { await supabaseClient.auth.signOut(); window.location.href = '../index.html'; }
+
+        // --- SISTEMA DE VISUALIZAÇÃO ---
+        function mudarView(view) {
+            document.getElementById('view-kanban').style.display = view === 'kanban' ? 'grid' : 'none';
+            document.getElementById('view-calendar').style.display = view === 'calendar' ? 'block' : 'none';
+            document.getElementById('btn-view-kanban').classList.toggle('active', view === 'kanban');
+            document.getElementById('btn-view-calendar').classList.toggle('active', view === 'calendar');
+
+            if (view === 'calendar' && calendarInstance) {
+                setTimeout(() => { calendarInstance.render(); }, 100);
+            }
+        }
+
+        function verificarRecorrencia() {
+            const tipo = document.getElementById('inputRecorrencia').value;
+            document.getElementById('boxData').style.display = (tipo === 'diaria') ? 'none' : 'block';
+            document.getElementById('boxDias').style.display = (tipo === 'semanal') ? 'block' : 'none';
+        }
+
+        // --- DADOS E RENDERS ---
+        async function carregarTarefas() {
+            const { data, error } = await supabaseClient.from('tarefas').select('*').order('id', { ascending: false });
+            if (!error) {
+                listaTarefasGlobais = data;
+                renderizarQuadro(data);
+                renderizarCalendario(data);
+            }
+        }
+
+        function renderizarQuadro(tarefas) {
+            document.getElementById('col-pendente').innerHTML = '';
+            document.getElementById('col-fazendo').innerHTML = '';
+            document.getElementById('col-concluido').innerHTML = '';
+
+            // LÓGICA DE FILTRO DO DIA ATUAL
+            const hoje = new Date();
+            const diaSemanaHoje = hoje.getDay(); // 0=Dom, 1=Seg...
+            
+            // Corrige o fuso horário para pegar a data YYYY-MM-DD exatamente como você vê no Brasil
+            const tzOffset = hoje.getTimezoneOffset() * 60000;
+            const hojeDataStr = new Date(hoje.getTime() - tzOffset).toISOString().split('T')[0];
+
+            // Filtra a lista para mostrar APENAS as tarefas de hoje no Quadro
+            const tarefasDeHoje = tarefas.filter(t => {
+                if (t.tipo_recorrencia === 'diaria') return true;
+                if (t.tipo_recorrencia === 'semanal') {
+                    if (!t.dias_semana) return false;
+                    const dias = t.dias_semana.split(',').map(Number);
+                    return dias.includes(diaSemanaHoje);
+                }
+                // Tarefa Única:
+                if (!t.data_limite) return true; // Mostra as que não tem data para não perder
+                
+                // Limpa do quadro as tarefas que já foram concluídas em dias anteriores
+                if (t.status === 'concluido' && t.data_limite < hojeDataStr) return false;
+                
+                // Mostra as tarefas de hoje e as atrasadas (<= hoje)
+                return t.data_limite <= hojeDataStr;
+            });
+
+            tarefasDeHoje.forEach(t => {
+                let badgeText = ''; let classeBorda = 'normal';
+
+                if (t.tipo_recorrencia === 'diaria') {
+                    badgeText = '🔄 Todos os dias'; classeBorda = 'repeticao';
+                } else if (t.tipo_recorrencia === 'semanal') {
+                    badgeText = '🔄 Rotina Semanal'; classeBorda = 'repeticao';
+                } else {
+                    badgeText = t.data_limite ? `📅 ${new Date(t.data_limite).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}` : 'Sem prazo';
+                    if (t.data_limite && t.status !== 'concluido' && t.data_limite < hojeDataStr) {
+                        classeBorda = 'urgente';
+                        badgeText = '⚠️ Atrasada';
+                    }
+                }
+
+                let actions = '';
+                if (t.status === 'pendente') actions = `<button class="btn-acao fazer" onclick="mudarStatus(${t.id}, 'fazendo')">▶ Iniciar</button>`;
+                else if (t.status === 'fazendo') actions = `<button class="btn-acao concluir" onclick="mudarStatus(${t.id}, 'concluido')">✔ Concluir</button>`;
+
+                const html = `
+                    <div class="tarefa-card ${classeBorda}">
+                        <h4 onclick="abrirModalEdicao(${t.id})">${t.titulo} ✏️</h4>
+                        ${t.descricao ? `<p>${t.descricao}</p>` : ''}
+                        <span class="badge-info">${badgeText}</span>
+                        <div class="tarefa-actions">${actions}</div>
+                    </div>`;
+
+                if (t.status === 'pendente') document.getElementById('col-pendente').innerHTML += html;
+                if (t.status === 'fazendo') document.getElementById('col-fazendo').innerHTML += html;
+                if (t.status === 'concluido') document.getElementById('col-concluido').innerHTML += html;
+            });
+        }
+
+        function renderizarCalendario(tarefas) {
+            const eventos = tarefas.map(t => {
+                let evt = {
+                    id: t.id,
+                    title: t.titulo,
+                    description: t.descricao,
+                    backgroundColor: t.status === 'concluido' ? '#38C172' : (t.status === 'fazendo' ? '#F6993F' : '#339DD9')
+                };
+
+                if (t.tipo_recorrencia === 'diaria') {
+                    evt.daysOfWeek = [0,1,2,3,4,5,6];
+                } else if (t.tipo_recorrencia === 'semanal' && t.dias_semana) {
+                    evt.daysOfWeek = t.dias_semana.split(',').map(Number);
+                    if(t.data_limite) evt.startRecur = t.data_limite;
+                } else {
+                    evt.start = t.data_limite || t.created_at; 
+                }
+                return evt;
+            });
+
+            const calendarEl = document.getElementById('calendar');
+            if (calendarInstance) calendarInstance.destroy();
+            
+            calendarInstance = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'pt-br',
+                headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' },
+                events: eventos,
+                eventClick: function(info) {
+                    abrirModalEdicao(info.event.id);
+                }
+            });
+            calendarInstance.render();
+        }
+
+        // --- LÓGICA DO MODAL (NOVO E EDIÇÃO) ---
+
+        function abrirModal() {
+            tarefaEditandoId = null;
+            document.getElementById('modal-titulo').innerText = 'Adicionar Demanda / Rotina';
+            
+            document.getElementById('inputTitulo').value = ''; 
+            document.getElementById('inputDesc').value = ''; 
+            document.getElementById('inputData').value = '';
+            document.getElementById('inputRecorrencia').value = 'unica'; 
+            
+            verificarRecorrencia();
+            document.querySelectorAll('.dias-checkboxes input').forEach(c => c.checked = false);
+            
+            document.getElementById('btnExcluirModal').style.display = 'none';
+            document.getElementById('modalNovaTarefa').style.display = 'flex';
+        }
+
+        function abrirModalEdicao(id) {
+            tarefaEditandoId = id;
+            const t = listaTarefasGlobais.find(x => x.id == id);
+            if(!t) return;
+            
+            document.getElementById('modal-titulo').innerText = 'Editar Demanda / Rotina';
+            document.getElementById('inputTitulo').value = t.titulo;
+            document.getElementById('inputDesc').value = t.descricao || '';
+            document.getElementById('inputData').value = t.data_limite || '';
+            document.getElementById('inputRecorrencia').value = t.tipo_recorrencia || 'unica';
+            
+            verificarRecorrencia();
+            
+            document.querySelectorAll('.dias-checkboxes input').forEach(c => c.checked = false);
+            if(t.tipo_recorrencia === 'semanal' && t.dias_semana) {
+                const dias = t.dias_semana.split(',');
+                dias.forEach(d => {
+                    const cb = document.querySelector(`.dias-checkboxes input[value="${d}"]`);
+                    if(cb) cb.checked = true;
+                });
+            }
+            
+            document.getElementById('btnExcluirModal').style.display = 'block';
+            document.getElementById('modalNovaTarefa').style.display = 'flex';
+        }
+
+        async function salvarTarefa() {
+            const titulo = document.getElementById('inputTitulo').value;
+            const desc = document.getElementById('inputDesc').value;
+            const data = document.getElementById('inputData').value;
+            const tipo = document.getElementById('inputRecorrencia').value;
+            
+            if (!titulo) return alert("O título é obrigatório!");
+
+            let diasSelecionados = null;
+            if (tipo === 'semanal') {
+                const checks = document.querySelectorAll('.dias-checkboxes input:checked');
+                diasSelecionados = Array.from(checks).map(c => c.value).join(',');
+                if(!diasSelecionados) return alert("Selecione pelo menos um dia da semana!");
+            }
+
+            const payload = { 
+                titulo: titulo, 
+                descricao: desc, 
+                data_limite: data || null, 
+                tipo_recorrencia: tipo,
+                dias_semana: diasSelecionados
+            };
+
+            if (tarefaEditandoId) {
+                await supabaseClient.from('tarefas').update(payload).eq('id', tarefaEditandoId);
+            } else {
+                payload.status = 'pendente';
+                await supabaseClient.from('tarefas').insert([payload]);
+            }
+            
+            fecharModal(); carregarTarefas();
+        }
+
+        async function excluirTarefaModal() {
+            if(!tarefaEditandoId) return;
+            if(confirm("Tem certeza que deseja apagar essa rotina? Ela vai sumir de todos os dias do calendário!")) {
+                await supabaseClient.from('tarefas').delete().eq('id', tarefaEditandoId);
+                fecharModal();
+                carregarTarefas();
+            }
+        }
+
+        async function mudarStatus(id, novoStatus) {
+            await supabaseClient.from('tarefas').update({ status: novoStatus }).eq('id', id);
+            carregarTarefas();
+        }
+
+        function fecharModal() { document.getElementById('modalNovaTarefa').style.display = 'none'; }
+    </script>
+</body>
+</html>

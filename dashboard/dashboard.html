@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Dashboard - NOPE Design</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --azul-principal: #339DD9; --chumbo-escuro: #1A1A1A; --chumbo-claro: #2C2C2C; --fundo: #F4F7F6; --branco: #FFFFFF; --cinza-borda: #E0E0E0; --texto-cinza: #555555; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--fundo); color: var(--chumbo-escuro); height: 100vh; display: flex; overflow: hidden; }
+
+        .sidebar { width: 260px; background-color: var(--chumbo-escuro); color: var(--branco); display: flex; flex-direction: column; z-index: 10; }
+        .sidebar-logo { padding: 20px; border-bottom: 1px solid var(--chumbo-claro); }
+        .sidebar-logo h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 5px; }
+        .sidebar-logo h1 span { color: var(--azul-principal); }
+        .sidebar-nav { padding: 20px 10px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #CCCCCC; text-decoration: none; border-radius: 8px; transition: 0.3s; }
+        .nav-link:hover, .nav-link.active { background-color: var(--chumbo-claro); color: var(--branco); }
+        .nav-link.active { border-left: 4px solid var(--azul-principal); }
+
+        .content-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--fundo); }
+        header { background-color: var(--branco); padding: 15px 30px; display: flex; align-items: center; border-bottom: 1px solid var(--cinza-borda); }
+        .header-title { font-size: 1.3rem; }
+
+        .dashboard-view { padding: 30px; flex: 1; overflow-y: auto; }
+        .kpi-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+        .kpi-card { background: var(--branco); padding: 25px; border-radius: 10px; border: 1px solid var(--cinza-borda); box-shadow: 0 4px 6px rgba(0,0,0,0.02); text-align: center; }
+        .kpi-card h4 { font-size: 1rem; color: var(--texto-cinza); margin-bottom: 10px; font-weight: 500; }
+        .kpi-card .number { font-size: 2.5rem; font-weight: bold; color: var(--azul-principal); }
+        
+        .charts-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .chart-card { background: var(--branco); padding: 20px; border-radius: 10px; border: 1px solid var(--cinza-borda); box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .chart-card h3 { font-size: 1.1rem; margin-bottom: 15px; color: var(--chumbo-escuro); text-align: center; }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-logo"><h1><span>N</span>OPE CRM</h1></div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-link active"><span>📊</span> Dashboard</a>
+            <a href="../painel/index.html" class="nav-link"><span>👥</span> Gestão de Leads</a>
+            <a href="../rotina/index.html" class="nav-link"><span>🗓️</span> Minha Rotina</a>
+            <a href="#" onclick="fazerLogout()" class="nav-link" style="margin-top: auto;"><span>🚪</span> Sair</a>
+        </nav>
+    </aside>
+
+    <div class="content-wrapper">
+        <header>
+            <h2 class="header-title">Dashboard de Desempenho</h2>
+        </header>
+
+        <div class="dashboard-view">
+            <div class="kpi-container">
+                <div class="kpi-card"><h4>Total de Leads no Sistema</h4><div class="number" id="kpi-total">0</div></div>
+                <div class="kpi-card"><h4>Aguardando Envio</h4><div class="number" id="kpi-pendentes" style="color: #F6993F;">0</div></div>
+                <div class="kpi-card"><h4>Leads Enviados (Total)</h4><div class="number" id="kpi-enviados" style="color: #38C172;">0</div></div>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>Leads por Corretora</h3>
+                    <canvas id="graficoCorretoras"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Envios vs Adicionados (Últimos 15 dias)</h3>
+                    <canvas id="graficoDias"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://flhefrapcznmkumvxrdf.supabase.co';
+        const supabaseKey = 'sb_publishable_mbe3nl2qggrFGt0w-JSaDw_i2BhuOxF';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // --- BLOQUEIO DE SEGURANÇA ---
+        async function protegerTela() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = '../index.html'; // CORRIGIDO PARA index.html raiz
+            } else {
+                carregarDados();
+            }
+        }
+        protegerTela();
+
+        // --- FUNÇÃO DE LOGOUT ---
+        async function fazerLogout() {
+            await supabaseClient.auth.signOut();
+            window.location.href = '../index.html'; // CORRIGIDO PARA index.html raiz
+        }
+        // -----------------------------
+
+        async function carregarDados() {
+            let leads = []; let limite = 1000; let inicio = 0; let temMais = true;
+            while (temMais) {
+                const { data, error } = await supabaseClient.from('leads').select('status, corretora, created_at, data_envio').order('id', { ascending: false }).range(inicio, inicio + limite - 1);
+                if (error) break; leads = leads.concat(data);
+                if (data.length < limite) temMais = false; else inicio += limite;
+            }
+            atualizarDashboard(leads);
+        }
+
+        function atualizarDashboard(leads) {
+            const totalEnviados = leads.filter(l => l.status === 'enviado').length;
+            document.getElementById('kpi-total').innerText = leads.length;
+            document.getElementById('kpi-pendentes').innerText = leads.length - totalEnviados;
+            document.getElementById('kpi-enviados').innerText = totalEnviados;
+
+            const corretoras = {};
+            leads.filter(l => l.status === 'enviado').forEach(l => {
+                const c = l.corretora || 'Sem corretora'; corretoras[c] = (corretoras[c] || 0) + 1;
+            });
+
+            const diasAdicionados = {}; const diasEnviados = {};
+            const ultimos15Dias = Array.from({length: 15}, (_, i) => {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            }).reverse();
+
+            ultimos15Dias.forEach(dia => { diasAdicionados[dia] = 0; diasEnviados[dia] = 0; });
+
+            leads.forEach(l => {
+                if (l.created_at) {
+                    const dAdd = new Date(l.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                    if (diasAdicionados[dAdd] !== undefined) diasAdicionados[dAdd]++;
+                }
+                if (l.status === 'enviado' && l.data_envio) {
+                    const dEnv = new Date(l.data_envio).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                    if (diasEnviados[dEnv] !== undefined) diasEnviados[dEnv]++;
+                }
+            });
+
+            new Chart(document.getElementById('graficoCorretoras'), {
+                type: 'pie', data: { labels: Object.keys(corretoras), datasets: [{ data: Object.values(corretoras), backgroundColor: ['#00BCD4', '#F6993F', '#E3342F', '#9C27B0', '#38C172', '#E91E63', '#1A1A1A'] }] }
+            });
+
+            new Chart(document.getElementById('graficoDias'), {
+                type: 'bar', data: { labels: ultimos15Dias, datasets: [ { label: 'Adicionados', data: ultimos15Dias.map(d => diasAdicionados[d]), backgroundColor: '#339DD9' }, { label: 'Enviados', data: ultimos15Dias.map(d => diasEnviados[d]), backgroundColor: '#38C172' } ] }, options: { scales: { y: { beginAtZero: true } } }
+            });
+        }
+    </script>
+</body>
+</html>
