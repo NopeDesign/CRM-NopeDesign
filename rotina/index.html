@@ -171,7 +171,6 @@
         let listaTarefasGlobais = [];
         let tarefaEditandoId = null; 
 
-        // Caminhos corrigidos para a raiz
         async function protegerTela() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) { window.location.href = '../index.html'; } else { carregarTarefas(); }
@@ -213,34 +212,34 @@
             document.getElementById('col-fazendo').innerHTML = '';
             document.getElementById('col-concluido').innerHTML = '';
 
-            // LÓGICA DE FILTRO DO DIA ATUAL
             const hoje = new Date();
-            const diaSemanaHoje = hoje.getDay(); // 0=Dom, 1=Seg...
-            
-            // Corrige o fuso horário para pegar a data YYYY-MM-DD exatamente como você vê no Brasil
+            const diaSemanaHoje = hoje.getDay(); 
             const tzOffset = hoje.getTimezoneOffset() * 60000;
             const hojeDataStr = new Date(hoje.getTime() - tzOffset).toISOString().split('T')[0];
 
-            // Filtra a lista para mostrar APENAS as tarefas de hoje no Quadro
             const tarefasDeHoje = tarefas.filter(t => {
                 if (t.tipo_recorrencia === 'diaria') return true;
                 if (t.tipo_recorrencia === 'semanal') {
                     if (!t.dias_semana) return false;
-                    const dias = t.dias_semana.split(',').map(Number);
-                    return dias.includes(diaSemanaHoje);
+                    return t.dias_semana.split(',').map(Number).includes(diaSemanaHoje);
                 }
-                // Tarefa Única:
-                if (!t.data_limite) return true; // Mostra as que não tem data para não perder
-                
-                // Limpa do quadro as tarefas que já foram concluídas em dias anteriores
+                if (!t.data_limite) return true;
                 if (t.status === 'concluido' && t.data_limite < hojeDataStr) return false;
-                
-                // Mostra as tarefas de hoje e as atrasadas (<= hoje)
                 return t.data_limite <= hojeDataStr;
             });
 
             tarefasDeHoje.forEach(t => {
                 let badgeText = ''; let classeBorda = 'normal';
+                let statusHoje = t.status;
+
+                if (t.tipo_recorrencia !== 'unica') {
+                    const concluidas = t.datas_concluidas ? t.datas_concluidas.split(',') : [];
+                    if (concluidas.includes(hojeDataStr)) {
+                        statusHoje = 'concluido';
+                    } else if (statusHoje === 'concluido') {
+                        statusHoje = 'pendente';
+                    }
+                }
 
                 if (t.tipo_recorrencia === 'diaria') {
                     badgeText = '🔄 Todos os dias'; classeBorda = 'repeticao';
@@ -248,15 +247,15 @@
                     badgeText = '🔄 Rotina Semanal'; classeBorda = 'repeticao';
                 } else {
                     badgeText = t.data_limite ? `📅 ${new Date(t.data_limite).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}` : 'Sem prazo';
-                    if (t.data_limite && t.status !== 'concluido' && t.data_limite < hojeDataStr) {
+                    if (t.data_limite && statusHoje !== 'concluido' && t.data_limite < hojeDataStr) {
                         classeBorda = 'urgente';
                         badgeText = '⚠️ Atrasada';
                     }
                 }
 
                 let actions = '';
-                if (t.status === 'pendente') actions = `<button class="btn-acao fazer" onclick="mudarStatus(${t.id}, 'fazendo')">▶ Iniciar</button>`;
-                else if (t.status === 'fazendo') actions = `<button class="btn-acao concluir" onclick="mudarStatus(${t.id}, 'concluido')">✔ Concluir</button>`;
+                if (statusHoje === 'pendente') actions = `<button class="btn-acao fazer" onclick="mudarStatus(${t.id}, 'fazendo')">▶ Iniciar</button>`;
+                else if (statusHoje === 'fazendo') actions = `<button class="btn-acao concluir" onclick="mudarStatus(${t.id}, 'concluido')">✔ Concluir</button>`;
 
                 const html = `
                     <div class="tarefa-card ${classeBorda}">
@@ -266,19 +265,24 @@
                         <div class="tarefa-actions">${actions}</div>
                     </div>`;
 
-                if (t.status === 'pendente') document.getElementById('col-pendente').innerHTML += html;
-                if (t.status === 'fazendo') document.getElementById('col-fazendo').innerHTML += html;
-                if (t.status === 'concluido') document.getElementById('col-concluido').innerHTML += html;
+                if (statusHoje === 'pendente') document.getElementById('col-pendente').innerHTML += html;
+                if (statusHoje === 'fazendo') document.getElementById('col-fazendo').innerHTML += html;
+                if (statusHoje === 'concluido') document.getElementById('col-concluido').innerHTML += html;
             });
         }
 
         function renderizarCalendario(tarefas) {
             const eventos = tarefas.map(t => {
+                const baseColor = (t.tipo_recorrencia === 'unica') 
+                    ? (t.status === 'concluido' ? '#38C172' : (t.status === 'fazendo' ? '#F6993F' : '#339DD9'))
+                    : '#339DD9';
+
                 let evt = {
                     id: t.id,
                     title: t.titulo,
                     description: t.descricao,
-                    backgroundColor: t.status === 'concluido' ? '#38C172' : (t.status === 'fazendo' ? '#F6993F' : '#339DD9')
+                    backgroundColor: baseColor,
+                    borderColor: baseColor
                 };
 
                 if (t.tipo_recorrencia === 'diaria') {
@@ -302,13 +306,34 @@
                 events: eventos,
                 eventClick: function(info) {
                     abrirModalEdicao(info.event.id);
+                },
+                eventDidMount: function(info) {
+                    const t = listaTarefasGlobais.find(x => x.id == info.event.id);
+                    
+                    if (t && t.tipo_recorrencia !== 'unica') {
+                        const dataRenderizada = info.event.start;
+                        const localDateStr = new Date(dataRenderizada.getTime() - dataRenderizada.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+                        
+                        const hoje = new Date();
+                        const hojeDataStr = new Date(hoje.getTime() - hoje.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+
+                        const concluidas = t.datas_concluidas ? t.datas_concluidas.split(',') : [];
+                        
+                        if (concluidas.includes(localDateStr)) {
+                            info.el.style.backgroundColor = '#38C172';
+                            info.el.style.borderColor = '#38C172';
+                        } 
+                        else if (t.status === 'fazendo' && localDateStr === hojeDataStr) {
+                            info.el.style.backgroundColor = '#F6993F';
+                            info.el.style.borderColor = '#F6993F';
+                        }
+                    }
                 }
             });
             calendarInstance.render();
         }
 
         // --- LÓGICA DO MODAL (NOVO E EDIÇÃO) ---
-
         function abrirModal() {
             tarefaEditandoId = null;
             document.getElementById('modal-titulo').innerText = 'Adicionar Demanda / Rotina';
@@ -394,7 +419,24 @@
         }
 
         async function mudarStatus(id, novoStatus) {
-            await supabaseClient.from('tarefas').update({ status: novoStatus }).eq('id', id);
+            const t = listaTarefasGlobais.find(x => x.id === id);
+            const hoje = new Date();
+            const tzOffset = hoje.getTimezoneOffset() * 60000;
+            const hojeDataStr = new Date(hoje.getTime() - tzOffset).toISOString().split('T')[0];
+            
+            let payload = {};
+
+            if (t.tipo_recorrencia !== 'unica' && novoStatus === 'concluido') {
+                let concluidas = t.datas_concluidas ? t.datas_concluidas.split(',') : [];
+                if (!concluidas.includes(hojeDataStr)) concluidas.push(hojeDataStr);
+                
+                payload.datas_concluidas = concluidas.join(',');
+                payload.status = 'pendente'; 
+            } else {
+                payload.status = novoStatus;
+            }
+
+            await supabaseClient.from('tarefas').update(payload).eq('id', id);
             carregarTarefas();
         }
 
