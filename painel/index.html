@@ -11,7 +11,32 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: var(--fundo); color: var(--chumbo-escuro); height: 100vh; display: flex; overflow: hidden; }
 
-        .sidebar { width: 260px; background-color: var(--chumbo-escuro); color: var(--branco); display: flex; flex-direction: column; z-index: 10; }
+        /* --- ANIMAÇÕES DE ENTRADA --- */
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .sidebar {
+            width: 260px; background-color: var(--chumbo-escuro); color: var(--branco); display: flex; flex-direction: column; z-index: 10;
+            animation: slideInLeft 0.5s ease-out forwards;
+        }
+
+        .content-wrapper {
+            flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;
+            animation: fadeSlideUp 0.6s ease-out forwards;
+        }
+
+        .card, .leads-table tbody tr {
+            animation: fadeSlideUp 0.4s ease-out both;
+        }
+        /* ---------------------------- */
+
         .sidebar-logo { padding: 20px; border-bottom: 1px solid var(--chumbo-claro); }
         .sidebar-logo h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 5px; }
         .sidebar-logo h1 span { color: var(--azul-principal); }
@@ -20,7 +45,6 @@
         .nav-link:hover, .nav-link.active { background-color: var(--chumbo-claro); color: var(--branco); }
         .nav-link.active { border-left: 4px solid var(--azul-principal); }
 
-        .content-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
         header { background-color: var(--branco); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--cinza-borda); }
         .header-title { font-size: 1.3rem; }
         .header-actions { display: flex; gap: 10px; }
@@ -93,7 +117,6 @@
     <aside class="sidebar">
         <div class="sidebar-logo"><h1><span>N</span>OPE CRM</h1></div>
         <nav class="sidebar-nav">
-            <!-- Caminhos e aba ativa corrigidos -->
             <a href="../dashboard/dashboard.html" class="nav-link"><span>📊</span> Dashboard</a>
             <a href="#" class="nav-link active"><span>👥</span> Gestão de Leads</a>
             <a href="../cronograma/index.html" class="nav-link"><span>📱</span> Social Media</a>
@@ -122,20 +145,17 @@
             </div>
             <button class="btn-limpar" onclick="limparFiltros()">Limpar Filtros</button>
             
-            <!-- ALTERNAR VISUALIZAÇÃO -->
             <div class="view-toggle">
                 <button class="btn-view active" id="btn-view-kanban" onclick="mudarView('kanban')">🖼️ Cards</button>
                 <button class="btn-view" id="btn-view-tabela" onclick="mudarView('tabela')">📋 Tabela</button>
             </div>
         </div>
 
-        <!-- MODO CARDS (KANBAN) -->
         <main class="board" id="view-kanban">
             <section class="coluna"><div class="coluna-header"><h2>Para Envio</h2><span class="contador" id="count-envio">0</span></div><div class="lista-cards" id="lista-envio"></div></section>
             <section class="coluna"><div class="coluna-header"><h2>Enviados</h2><span class="contador" id="count-enviados">0</span></div><div class="lista-cards" id="lista-enviados"></div></section>
         </main>
 
-        <!-- MODO TABELA -->
         <div class="table-container" id="view-tabela">
             <table class="leads-table">
                 <thead>
@@ -152,7 +172,6 @@
                     </tr>
                 </thead>
                 <tbody id="lista-tabela">
-                    <!-- JS vai popular a tabela -->
                 </tbody>
             </table>
         </div>
@@ -178,17 +197,15 @@
 
     <script>
         const supabaseUrl = 'https://flhefrapcznmkumvxrdf.supabase.co';
-        const supabaseKey = 'sb_publishable_mbe3nl2qggrFGt0w-JSaDw_i2BhuOxF';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZsaGVmcmFwY3pubWt1bXZ4cmRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1NjEzODQsImV4cCI6MjEwNTEzNzM4NH0.aMzjJdgPXI7Ansm3KaiS-1VlyBwgJVoA_U9xx0mViso';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // CAMINHO DO LOGIN CORRIGIDO AQUI EMBAIXO
         async function protegerTela() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) { window.location.href = '../index.html'; } else { carregarLeads(); }
         }
         protegerTela();
 
-        // CAMINHO DO LOGIN CORRIGIDO AQUI EMBAIXO
         async function fazerLogout() { await supabaseClient.auth.signOut(); window.location.href = '../index.html'; }
 
         let leads = [];
@@ -216,34 +233,26 @@
             document.getElementById('btn-view-tabela').classList.toggle('active', view === 'tabela');
         }
 
-        // Função para atualizar o dropdown de datas
         function atualizarFiltroDatas() {
             const selectData = document.getElementById('filterData');
-            const valorSelecionado = selectData.value; // Salva o que já estava filtrado
+            const valorSelecionado = selectData.value;
 
-            // Extrai apenas a parte da data (YYYY-MM-DD) do created_at ignorando leads sem data
             const datasUnicas = [...new Set(leads.map(lead => {
                 return lead.created_at ? lead.created_at.split('T')[0] : null;
             }).filter(data => data !== null))];
 
-            // Ordena da data mais recente para a mais antiga
             datasUnicas.sort((a, b) => new Date(b) - new Date(a));
-
-            // Reseta as opções do select
             selectData.innerHTML = '<option value="">Todas as datas</option>';
 
-            // Cria as novas opções formatadas como DD/MM/YYYY
             datasUnicas.forEach(data => {
                 const [ano, mes, dia] = data.split('-');
                 const dataFormatada = `${dia}/${mes}/${ano}`;
-                
                 const option = document.createElement('option');
-                option.value = data; // O valor interno continua YYYY-MM-DD para o filtro funcionar
+                option.value = data;
                 option.textContent = dataFormatada;
                 selectData.appendChild(option);
             });
 
-            // Restaura a seleção anterior caso a data continue existindo
             if (datasUnicas.includes(valorSelecionado)) {
                 selectData.value = valorSelecionado;
             }
@@ -257,7 +266,7 @@
                 if (data.length < limite) { temMais = false; } else { inicio += limite; }
             }
             leads = todosLeads; 
-            atualizarFiltroDatas(); // Atualiza a lista de datas exclusivas
+            atualizarFiltroDatas();
             renderizarLeads();
         }
 
@@ -276,7 +285,7 @@
                 return passaDDD && passaData;
             });
 
-            leadsFiltrados.forEach(lead => {
+            leadsFiltrados.forEach((lead, index) => {
                 const telVisual = formatarTelefone(lead.whatsapp);
                 const valData = lead.created_at ? new Date(lead.created_at).toLocaleDateString('pt-BR') : '-';
                 const valCidade = formatarDado(lead.cidade);
@@ -285,7 +294,10 @@
                 const valPlano = formatarDado(lead.tem_plano);
                 const valObs = formatarDado(lead.observacao);
 
-                const card = document.createElement('div'); card.className = 'card';
+                const card = document.createElement('div'); 
+                card.className = 'card';
+                card.style.animationDelay = `${index * 0.04}s`;
+
                 const infoHTML = `
                     <div class="lead-details">
                         <div class="detail-item" style="grid-column: span 2;"><strong>📅 Adicionado em</strong> ${valData}</div>
@@ -312,6 +324,7 @@
                 }
 
                 const tr = document.createElement('tr');
+                tr.style.animationDelay = `${index * 0.04}s`;
                 let statusTable = ''; let acoesTable = '';
 
                 if (lead.status === 'para_envio') {
