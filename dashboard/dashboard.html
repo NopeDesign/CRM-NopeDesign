@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --azul-principal: #339DD9; --chumbo-escuro: #1A1A1A; --chumbo-claro: #2C2C2C; --fundo: #F4F7F6; --branco: #FFFFFF; --cinza-borda: #E0E0E0; --texto-cinza: #555555; }
+        :root { --azul-principal: #339DD9; --azul-hover: #2880B3; --chumbo-escuro: #1A1A1A; --chumbo-claro: #2C2C2C; --fundo: #F4F7F6; --branco: #FFFFFF; --cinza-borda: #E0E0E0; --texto-cinza: #555555; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: var(--fundo); color: var(--chumbo-escuro); height: 100vh; display: flex; overflow: hidden; }
 
@@ -21,18 +21,37 @@
         .nav-link.active { border-left: 4px solid var(--azul-principal); }
 
         .content-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--fundo); }
-        header { background-color: var(--branco); padding: 15px 30px; display: flex; align-items: center; border-bottom: 1px solid var(--cinza-borda); }
+        header { background-color: var(--branco); padding: 15px 30px; display: flex; align-items: center; border-bottom: 1px solid var(--cinza-borda); justify-content: space-between; }
         .header-title { font-size: 1.3rem; }
 
-        .dashboard-view { padding: 30px; flex: 1; overflow-y: auto; }
-        .kpi-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
-        .kpi-card { background: var(--branco); padding: 25px; border-radius: 10px; border: 1px solid var(--cinza-borda); box-shadow: 0 4px 6px rgba(0,0,0,0.02); text-align: center; }
-        .kpi-card h4 { font-size: 1rem; color: var(--texto-cinza); margin-bottom: 10px; font-weight: 500; }
-        .kpi-card .number { font-size: 2.5rem; font-weight: bold; color: var(--azul-principal); }
+        /* BARRA DE FILTROS */
+        .filters-bar { background-color: var(--branco); padding: 15px 30px; border-bottom: 1px solid var(--cinza-borda); display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+        .filter-group { display: flex; align-items: center; gap: 10px; }
+        .filter-group label { font-size: 0.9rem; font-weight: 600; color: var(--chumbo-escuro); }
+        .filter-group input { padding: 8px 12px; border: 1px solid var(--cinza-borda); border-radius: 6px; outline: none; font-size: 0.9rem; }
+        .filter-group input:focus { border-color: var(--azul-principal); }
         
+        .quick-filters { display: flex; gap: 8px; }
+        .btn-filter { background: #f0f0f0; border: 1px solid var(--cinza-borda); padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: 0.2s; color: var(--chumbo-escuro); }
+        .btn-filter:hover { background: #e4e4e4; }
+        .btn-filter.active { background: var(--azul-principal); color: var(--branco); border-color: var(--azul-principal); }
+
+        .dashboard-view { padding: 30px; flex: 1; overflow-y: auto; }
+        
+        /* KPIS */
+        .kpi-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .kpi-card { background: var(--branco); padding: 25px; border-radius: 10px; border: 1px solid var(--cinza-borda); box-shadow: 0 4px 6px rgba(0,0,0,0.02); text-align: center; }
+        .kpi-card h4 { font-size: 0.9rem; color: var(--texto-cinza); margin-bottom: 10px; font-weight: 600; text-transform: uppercase; }
+        .kpi-card .number { font-size: 2.2rem; font-weight: bold; color: var(--azul-principal); }
+        
+        /* GRÁFICOS */
         .charts-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-        .chart-card { background: var(--branco); padding: 20px; border-radius: 10px; border: 1px solid var(--cinza-borda); box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-        .chart-card h3 { font-size: 1.1rem; margin-bottom: 15px; color: var(--chumbo-escuro); text-align: center; }
+        .chart-card { background: var(--branco); padding: 20px; border-radius: 10px; border: 1px solid var(--cinza-borda); box-shadow: 0 4px 6px rgba(0,0,0,0.02); min-height: 300px; display: flex; flex-direction: column; }
+        .chart-card h3 { font-size: 1.1rem; margin-bottom: 15px; color: var(--chumbo-escuro); text-align: center; font-weight: 600; }
+        .chart-wrapper { flex: 1; position: relative; min-height: 250px; }
+        
+        /* Gráfico de evolução ocupa a linha toda */
+        .chart-full { grid-column: span 2; }
     </style>
 </head>
 <body>
@@ -40,8 +59,10 @@
     <aside class="sidebar">
         <div class="sidebar-logo"><h1><span>N</span>OPE CRM</h1></div>
         <nav class="sidebar-nav">
+            <!-- Caminhos e aba ativa corrigidos -->
             <a href="#" class="nav-link active"><span>📊</span> Dashboard</a>
             <a href="../painel/index.html" class="nav-link"><span>👥</span> Gestão de Leads</a>
+            <a href="../cronograma/index.html" class="nav-link"><span>📱</span> Social Media</a>
             <a href="../rotina/index.html" class="nav-link"><span>🗓️</span> Minha Rotina</a>
             <a href="#" onclick="fazerLogout()" class="nav-link" style="margin-top: auto;"><span>🚪</span> Sair</a>
         </nav>
@@ -52,21 +73,54 @@
             <h2 class="header-title">Dashboard de Desempenho</h2>
         </header>
 
+        <!-- NOVA BARRA DE FILTROS -->
+        <div class="filters-bar">
+            <div class="quick-filters">
+                <button class="btn-filter" id="btn-geral" onclick="setFiltroRapido('geral')">Geral (Todos)</button>
+                <button class="btn-filter" id="btn-hoje" onclick="setFiltroRapido('hoje')">Hoje</button>
+                <button class="btn-filter" id="btn-semana" onclick="setFiltroRapido('semana')">Últimos 7 Dias</button>
+                <button class="btn-filter active" id="btn-mes" onclick="setFiltroRapido('mes')">Este Mês</button>
+            </div>
+            
+            <div class="filter-group" style="margin-left: auto;">
+                <label>Período:</label>
+                <input type="date" id="dataInicio" onchange="aplicarFiltrosManuais()">
+                <span>até</span>
+                <input type="date" id="dataFim" onchange="aplicarFiltrosManuais()">
+            </div>
+        </div>
+
         <div class="dashboard-view">
+            <!-- KPIS -->
             <div class="kpi-container">
-                <div class="kpi-card"><h4>Total de Leads no Sistema</h4><div class="number" id="kpi-total">0</div></div>
+                <div class="kpi-card"><h4>Leads no Período</h4><div class="number" id="kpi-total">0</div></div>
                 <div class="kpi-card"><h4>Aguardando Envio</h4><div class="number" id="kpi-pendentes" style="color: #F6993F;">0</div></div>
-                <div class="kpi-card"><h4>Leads Enviados (Total)</h4><div class="number" id="kpi-enviados" style="color: #38C172;">0</div></div>
+                <div class="kpi-card"><h4>Leads Enviados</h4><div class="number" id="kpi-enviados" style="color: #38C172;">0</div></div>
+                <div class="kpi-card"><h4>Taxa de Envio</h4><div class="number" id="kpi-taxa" style="color: #9C27B0;">0%</div></div>
             </div>
 
+            <!-- GRÁFICOS -->
             <div class="charts-container">
-                <div class="chart-card">
-                    <h3>Leads por Corretora</h3>
-                    <canvas id="graficoCorretoras"></canvas>
+                <!-- Gráfico Largo -->
+                <div class="chart-card chart-full">
+                    <h3>Evolução de Leads (Adicionados vs Enviados)</h3>
+                    <div class="chart-wrapper"><canvas id="graficoEvolucao"></canvas></div>
                 </div>
+
+                <!-- Gráficos Menores -->
                 <div class="chart-card">
-                    <h3>Envios vs Adicionados (Últimos 15 dias)</h3>
-                    <canvas id="graficoDias"></canvas>
+                    <h3>Envios por Corretora</h3>
+                    <div class="chart-wrapper"><canvas id="graficoCorretoras"></canvas></div>
+                </div>
+                
+                <div class="chart-card">
+                    <h3>Top Regiões (DDD)</h3>
+                    <div class="chart-wrapper"><canvas id="graficoDDD"></canvas></div>
+                </div>
+
+                <div class="chart-card chart-full">
+                    <h3>Perfil do Cliente: Já possui plano?</h3>
+                    <div class="chart-wrapper" style="max-height: 250px;"><canvas id="graficoPlano"></canvas></div>
                 </div>
             </div>
         </div>
@@ -77,70 +131,231 @@
         const supabaseKey = 'sb_publishable_mbe3nl2qggrFGt0w-JSaDw_i2BhuOxF';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
+        let todosOsLeads = []; // Guarda todos os dados do banco
+        let graficosInstancias = {}; // Guarda os gráficos do Chart.js para podermos destrui-los ao atualizar
+
         // --- BLOQUEIO DE SEGURANÇA ---
         async function protegerTela() {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) {
-                window.location.href = '../index.html'; // CORRIGIDO PARA index.html raiz
-            } else {
-                carregarDados();
-            }
+            if (!session) { window.location.href = '../index.html'; } 
+            else { carregarDados(); }
         }
         protegerTela();
 
-        // --- FUNÇÃO DE LOGOUT ---
         async function fazerLogout() {
             await supabaseClient.auth.signOut();
-            window.location.href = '../index.html'; // CORRIGIDO PARA index.html raiz
+            window.location.href = '../index.html';
         }
-        // -----------------------------
 
+        // --- BUSCA DE DADOS ---
         async function carregarDados() {
             let leads = []; let limite = 1000; let inicio = 0; let temMais = true;
+            // Adicionado 'whatsapp' e 'tem_plano' na busca
             while (temMais) {
-                const { data, error } = await supabaseClient.from('leads').select('status, corretora, created_at, data_envio').order('id', { ascending: false }).range(inicio, inicio + limite - 1);
-                if (error) break; leads = leads.concat(data);
-                if (data.length < limite) temMais = false; else inicio += limite;
+                const { data, error } = await supabaseClient.from('leads')
+                    .select('status, corretora, created_at, data_envio, whatsapp, tem_plano')
+                    .order('id', { ascending: false })
+                    .range(inicio, inicio + limite - 1);
+                
+                if (error) break; 
+                leads = leads.concat(data);
+                if (data.length < limite) temMais = false; 
+                else inicio += limite;
             }
-            atualizarDashboard(leads);
+            todosOsLeads = leads;
+            setFiltroRapido('mes'); // Inicia mostrando dados do mês atual
         }
 
-        function atualizarDashboard(leads) {
-            const totalEnviados = leads.filter(l => l.status === 'enviado').length;
-            document.getElementById('kpi-total').innerText = leads.length;
-            document.getElementById('kpi-pendentes').innerText = leads.length - totalEnviados;
-            document.getElementById('kpi-enviados').innerText = totalEnviados;
+        // --- LÓGICA DE FILTROS ---
+        function setFiltroRapido(tipo) {
+            // Atualiza botões
+            document.querySelectorAll('.btn-filter').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${tipo}`).classList.add('active');
 
-            const corretoras = {};
-            leads.filter(l => l.status === 'enviado').forEach(l => {
-                const c = l.corretora || 'Sem corretora'; corretoras[c] = (corretoras[c] || 0) + 1;
+            const hoje = new Date();
+            let start = '';
+            let end = hoje.toISOString().split('T')[0]; // Hoje formatado
+
+            if (tipo === 'hoje') {
+                start = end;
+            } else if (tipo === 'semana') {
+                let d = new Date(); d.setDate(d.getDate() - 6);
+                start = d.toISOString().split('T')[0];
+            } else if (tipo === 'mes') {
+                start = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
+            } else if (tipo === 'geral') {
+                start = ''; // Sem data de início
+                end = '';   // Sem data de fim
+            }
+
+            document.getElementById('dataInicio').value = start;
+            document.getElementById('dataFim').value = end;
+            
+            aplicarFiltros();
+        }
+
+        function aplicarFiltrosManuais() {
+            // Remove o "active" dos botões rápidos pois o usuário mexeu na data manualmente
+            document.querySelectorAll('.btn-filter').forEach(btn => btn.classList.remove('active'));
+            aplicarFiltros();
+        }
+
+        function aplicarFiltros() {
+            const start = document.getElementById('dataInicio').value;
+            const end = document.getElementById('dataFim').value;
+
+            const leadsFiltrados = todosOsLeads.filter(lead => {
+                if (!lead.created_at) return true; // Se não tem data, mostra sempre
+                
+                const dataLead = lead.created_at.split('T')[0];
+                
+                if (start && dataLead < start) return false;
+                if (end && dataLead > end) return false;
+                return true;
             });
 
-            const diasAdicionados = {}; const diasEnviados = {};
-            const ultimos15Dias = Array.from({length: 15}, (_, i) => {
-                const d = new Date(); d.setDate(d.getDate() - i);
-                return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-            }).reverse();
+            atualizarDashboard(leadsFiltrados);
+        }
 
-            ultimos15Dias.forEach(dia => { diasAdicionados[dia] = 0; diasEnviados[dia] = 0; });
+        // --- DESTRUIR GRÁFICOS ANTIGOS ---
+        function limparGraficos() {
+            if (graficosInstancias.corretoras) graficosInstancias.corretoras.destroy();
+            if (graficosInstancias.evolucao) graficosInstancias.evolucao.destroy();
+            if (graficosInstancias.ddd) graficosInstancias.ddd.destroy();
+            if (graficosInstancias.plano) graficosInstancias.plano.destroy();
+        }
+
+        // --- ATUALIZAR INTERFACE ---
+        function atualizarDashboard(leads) {
+            limparGraficos();
+
+            // 1. KPIs
+            const total = leads.length;
+            const enviados = leads.filter(l => l.status === 'enviado').length;
+            const pendentes = total - enviados;
+            const taxa = total > 0 ? Math.round((enviados / total) * 100) : 0;
+
+            document.getElementById('kpi-total').innerText = total;
+            document.getElementById('kpi-pendentes').innerText = pendentes;
+            document.getElementById('kpi-enviados').innerText = enviados;
+            document.getElementById('kpi-taxa').innerText = taxa + '%';
+
+            if (total === 0) return; // Se não tem dados, não desenha gráficos vazios
+
+            // 2. PREPARAR DADOS PARA GRÁFICOS
+            const corretoras = {};
+            const ddds = {};
+            const planos = { 'Sim': 0, 'Não': 0, 'Não Informado': 0 };
+            
+            // Set para guardar todas as datas únicas que existem nesse filtro
+            const datasSet = new Set(); 
+
+            leads.forEach(l => {
+                // Corretoras
+                if (l.status === 'enviado') {
+                    const c = l.corretora || 'Sem corretora'; 
+                    corretoras[c] = (corretoras[c] || 0) + 1;
+                }
+
+                // DDDs (Limpa o numero e pega os 2 primeiros digitos)
+                if (l.whatsapp) {
+                    const num = String(l.whatsapp).replace(/\D/g, '');
+                    if (num.length >= 10) {
+                        const ddd = num.substring(0, 2);
+                        ddds[ddd] = (ddds[ddd] || 0) + 1;
+                    }
+                }
+
+                // Planos
+                if (l.tem_plano && l.tem_plano.trim() !== '') {
+                    // Lógica simples: se o texto contém "não" ou "nao", é Não. Senão, é Sim.
+                    const p = l.tem_plano.toLowerCase();
+                    if (p === 'não' || p === 'nao' || p === 'n') planos['Não']++;
+                    else planos['Sim']++;
+                } else {
+                    planos['Não Informado']++;
+                }
+
+                // Datas para evolução
+                if (l.created_at) datasSet.add(l.created_at.split('T')[0]);
+                if (l.data_envio && l.status === 'enviado') datasSet.add(l.data_envio.split('T')[0]);
+            });
+
+            // Processar Evolução de Datas
+            const diasOrdenados = Array.from(datasSet).sort();
+            const diasAdicionados = {};
+            const diasEnviados = {};
+            
+            diasOrdenados.forEach(d => { diasAdicionados[d] = 0; diasEnviados[d] = 0; });
 
             leads.forEach(l => {
                 if (l.created_at) {
-                    const dAdd = new Date(l.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                    const dAdd = l.created_at.split('T')[0];
                     if (diasAdicionados[dAdd] !== undefined) diasAdicionados[dAdd]++;
                 }
                 if (l.status === 'enviado' && l.data_envio) {
-                    const dEnv = new Date(l.data_envio).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                    const dEnv = l.data_envio.split('T')[0];
                     if (diasEnviados[dEnv] !== undefined) diasEnviados[dEnv]++;
                 }
             });
 
-            new Chart(document.getElementById('graficoCorretoras'), {
-                type: 'pie', data: { labels: Object.keys(corretoras), datasets: [{ data: Object.values(corretoras), backgroundColor: ['#00BCD4', '#F6993F', '#E3342F', '#9C27B0', '#38C172', '#E91E63', '#1A1A1A'] }] }
+            // Formatar datas para exibir no eixo X (DD/MM)
+            const labelsDias = diasOrdenados.map(d => {
+                const [ano, mes, dia] = d.split('-');
+                return `${dia}/${mes}`;
             });
 
-            new Chart(document.getElementById('graficoDias'), {
-                type: 'bar', data: { labels: ultimos15Dias, datasets: [ { label: 'Adicionados', data: ultimos15Dias.map(d => diasAdicionados[d]), backgroundColor: '#339DD9' }, { label: 'Enviados', data: ultimos15Dias.map(d => diasEnviados[d]), backgroundColor: '#38C172' } ] }, options: { scales: { y: { beginAtZero: true } } }
+            // Pegar os Top 5 DDDs para o gráfico não ficar gigante
+            const arrayDDDs = Object.keys(ddds).map(k => ({ ddd: k, count: ddds[k] }));
+            arrayDDDs.sort((a, b) => b.count - a.count);
+            const topDDDs = arrayDDDs.slice(0, 7);
+            const labelsDDD = topDDDs.map(item => `DDD ${item.ddd}`);
+            const dataDDD = topDDDs.map(item => item.count);
+
+            // 3. DESENHAR GRÁFICOS
+            const paletaCores = ['#00BCD4', '#F6993F', '#E3342F', '#9C27B0', '#38C172', '#E91E63', '#1A1A1A'];
+
+            // Gráfico 1: Evolução (Linha/Barra)
+            graficosInstancias.evolucao = new Chart(document.getElementById('graficoEvolucao'), {
+                type: 'line',
+                data: { 
+                    labels: labelsDias, 
+                    datasets: [ 
+                        { label: 'Leads Adicionados', data: diasOrdenados.map(d => diasAdicionados[d]), borderColor: '#339DD9', backgroundColor: 'rgba(51, 157, 217, 0.1)', fill: true, tension: 0.3 }, 
+                        { label: 'Leads Enviados', data: diasOrdenados.map(d => diasEnviados[d]), borderColor: '#38C172', backgroundColor: 'rgba(56, 193, 114, 0.1)', fill: true, tension: 0.3 } 
+                    ] 
+                }, 
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+            });
+
+            // Gráfico 2: Corretoras (Pie)
+            graficosInstancias.corretoras = new Chart(document.getElementById('graficoCorretoras'), {
+                type: 'pie', 
+                data: { 
+                    labels: Object.keys(corretoras), 
+                    datasets: [{ data: Object.values(corretoras), backgroundColor: paletaCores }] 
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // Gráfico 3: DDD (Bar Horizontal ou Doughnut)
+            graficosInstancias.ddd = new Chart(document.getElementById('graficoDDD'), {
+                type: 'bar', 
+                data: { 
+                    labels: labelsDDD, 
+                    datasets: [{ label: 'Qtd de Leads', data: dataDDD, backgroundColor: '#339DD9', borderRadius: 4 }] 
+                },
+                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+            });
+
+            // Gráfico 4: Plano (Doughnut)
+            graficosInstancias.plano = new Chart(document.getElementById('graficoPlano'), {
+                type: 'doughnut', 
+                data: { 
+                    labels: Object.keys(planos), 
+                    datasets: [{ data: Object.values(planos), backgroundColor: ['#38C172', '#E3342F', '#E0E0E0'] }] 
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'right' } } }
             });
         }
     </script>

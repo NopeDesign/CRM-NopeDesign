@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cronograma de Posts - NOPE CRM</title>
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- FullCalendar -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    
+    <style>
+        :root { --azul-principal: #339DD9; --azul-hover: #2880B3; --chumbo-escuro: #1A1A1A; --chumbo-claro: #2C2C2C; --fundo: #F4F7F6; --branco: #FFFFFF; --cinza-borda: #E0E0E0; --texto-cinza: #555555; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--fundo); color: var(--chumbo-escuro); height: 100vh; display: flex; overflow: hidden; }
+
+        .sidebar { width: 260px; background-color: var(--chumbo-escuro); color: var(--branco); display: flex; flex-direction: column; z-index: 10; }
+        .sidebar-logo { padding: 20px; border-bottom: 1px solid var(--chumbo-claro); }
+        .sidebar-logo h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 5px; }
+        .sidebar-logo h1 span { color: var(--azul-principal); }
+        .sidebar-nav { padding: 20px 10px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #CCCCCC; text-decoration: none; border-radius: 8px; transition: 0.3s; }
+        .nav-link:hover, .nav-link.active { background-color: var(--chumbo-claro); color: var(--branco); }
+        .nav-link.active { border-left: 4px solid var(--azul-principal); }
+
+        .content-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--fundo); }
+        header { background-color: var(--branco); padding: 15px 30px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--cinza-borda); }
+        .header-title { font-size: 1.3rem; margin-right: auto; }
+        
+        .btn-novo { background-color: var(--azul-principal); color: var(--branco); border: none; padding: 10px 15px; font-weight: bold; border-radius: 5px; cursor: pointer; transition: 0.3s; }
+        .btn-novo:hover { background-color: var(--azul-hover); }
+
+        .view-toggle { display: flex; gap: 5px; background: var(--fundo); padding: 4px; border-radius: 6px; border: 1px solid var(--cinza-borda); }
+        .btn-view { padding: 6px 12px; border: none; background: transparent; cursor: pointer; border-radius: 4px; font-size: 0.85rem; transition: 0.3s; font-weight: 600; color: var(--texto-cinza); }
+        .btn-view.active { background: var(--branco); color: var(--azul-principal); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+        /* CALENDÁRIO */
+        #view-calendar { padding: 20px; flex: 1; overflow-y: auto; background: var(--branco); margin: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .fc-event { cursor: pointer; padding: 3px 5px; border: none !important; border-radius: 4px; font-size: 0.8rem; font-weight: bold; color: #fff !important;}
+        
+        /* LISTA POR DIA E PERFIL */
+        #view-lista { display: none; padding: 30px; flex: 1; overflow-y: auto; }
+        .dia-bloco { margin-bottom: 40px; background: var(--branco); border-radius: 8px; border: 1px solid var(--cinza-borda); overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .dia-header { background: var(--chumbo-escuro); color: var(--branco); padding: 15px 20px; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+        .perfis-grid { display: flex; overflow-x: auto; padding: 20px; gap: 20px; background: #FAFAFA; min-height: 200px;}
+        .perfil-coluna { flex: 1; min-width: 280px; background: var(--fundo); border-radius: 8px; border: 1px solid var(--cinza-borda); padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .perfil-titulo { font-size: 0.95rem; font-weight: bold; text-align: center; margin-bottom: 10px; color: var(--texto-cinza); text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        /* CARD DO POST */
+        .post-card { background: var(--branco); padding: 15px; border-radius: 6px; border: 1px solid var(--cinza-borda); border-left: 4px solid var(--azul-principal); cursor: pointer; transition: 0.2s; position: relative;}
+        .post-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        .post-card.editada { border-left-color: #F6993F; } /* Laranja para Arte Pronta */
+        .post-card.postado { border-left-color: #38C172; opacity: 0.8; } /* Verde para Postado */
+        
+        .card-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        
+        .post-card h4 { font-size: 0.95rem; margin-bottom: 8px; color: var(--chumbo-escuro); }
+        .badge-formato { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; background: #E9ECEF; color: #495057; }
+        
+        /* NOVO BOTÃO DE STATUS CLICÁVEL NO CARD */
+        .badge-status-click { border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .badge-status-click:hover { filter: brightness(0.9); transform: scale(1.05); }
+        .badge-status-pendente { background: #F0F4F8; color: #334E68; border: 1px solid #D9E2EC; }
+        .badge-status-editada { background: #FFF3E0; color: #E65100; border: 1px solid #FFCC80; }
+        .badge-status-postado { background: #D1E7DD; color: #0F5132; border: 1px solid #A3CFBB; }
+
+        /* Cores dos Formatos */
+        .formato-reels { background: #FFD1E3; color: #D81B60; }
+        .formato-feed { background: #D1E7DD; color: #0F5132; }
+        .formato-stories { background: #FFF3CD; color: #856404; }
+        .formato-carrossel { background: #CFF4FC; color: #055160; }
+
+        .post-desc { font-size: 0.8rem; color: var(--texto-cinza); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px; }
+        .post-hash { font-size: 0.75rem; color: var(--azul-principal); font-weight: 500; }
+        
+        /* MODAL */
+        .modal-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
+        .modal { background: var(--branco); padding: 30px; border-radius: 8px; width: 550px; max-height: 90vh; overflow-y: auto; }
+        .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;}
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
+        .input-group input, .input-group textarea, .input-group select { width: 100%; padding: 10px; border: 1px solid var(--cinza-borda); border-radius: 5px; font-family: inherit; outline: none;}
+        .input-group select:focus, .input-group input:focus, .input-group textarea:focus { border-color: var(--azul-principal); }
+        
+        .modal-actions { display: flex; gap: 10px; margin-top: 25px; align-items: center; }
+        .btn-excluir { background: #E3342F; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; margin-right: auto; font-weight: bold; display: none; }
+        .btn-cancelar { background: #ccc; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-logo"><h1><span>N</span>OPE CRM</h1></div>
+        <nav class="sidebar-nav">
+            <!-- Caminhos corrigidos baseados na estrutura -->
+            <a href="../dashboard/dashboard.html" class="nav-link"><span>📊</span> Dashboard</a>
+            <a href="../painel/index.html" class="nav-link"><span>👥</span> Gestão de Leads</a>
+            <a href="#" class="nav-link active"><span>📱</span> Social Media</a>
+            <a href="../rotina/index.html" class="nav-link"><span>🗓️</span> Minha Rotina</a>
+            <a href="#" onclick="fazerLogout()" class="nav-link" style="margin-top: auto;"><span>🚪</span> Sair</a>
+        </nav>
+    </aside>
+
+    <div class="content-wrapper">
+        <header>
+            <h2 class="header-title">Cronograma de Postagens</h2>
+
+            <div class="view-toggle">
+                <button class="btn-view active" id="btn-view-calendar" onclick="mudarView('calendar')">📅 Calendário</button>
+                <button class="btn-view" id="btn-view-lista" onclick="mudarView('lista')">📋 Lista por Dia</button>
+            </div>
+
+            <button class="btn-novo" onclick="abrirModal()">+ Novo Post</button>
+        </header>
+
+        <!-- VISÃO CALENDÁRIO -->
+        <div id="view-calendar">
+            <div id="calendar"></div>
+        </div>
+
+        <!-- VISÃO LISTA -->
+        <main id="view-lista">
+            <!-- Renderizado via JS -->
+        </main>
+
+        <!-- MODAL NOVO POST / EDIÇÃO -->
+        <div class="modal-overlay" id="modalPost">
+            <div class="modal">
+                <h2 id="modal-titulo">Agendar Nova Postagem</h2>
+                
+                <div class="input-group">
+                    <label>Título do Post / Tema</label>
+                    <input type="text" id="inputTitulo" placeholder="Ex: Benefícios do Plano de Saúde">
+                </div>
+                
+                <div class="modal-grid">
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <label>Perfil / Cliente</label>
+                        <select id="inputPerfil">
+                            <option value="NOPE Design">NOPE Design</option>
+                            <option value="Brand Seguros">Brand Seguros</option>
+                            <option value="BV Pinho">BV Pinho</option>
+                            <option value="DC Teodoro">DC Teodoro</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <label>Data de Postagem</label>
+                        <input type="date" id="inputData">
+                    </div>
+                </div>
+
+                <div class="modal-grid">
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <label>Formato</label>
+                        <select id="inputFormato">
+                            <option value="Reels">Reels</option>
+                            <option value="Feed">Feed (Imagem/Carrossel)</option>
+                            <option value="Carrossel">Carrossel</option>
+                            <option value="Stories">Stories</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <label>Status da Arte</label>
+                        <select id="inputStatus">
+                            <option value="pendente">⏳ Pendente (A Fazer)</option>
+                            <option value="editada">🎨 Arte Pronta / Editada</option>
+                            <option value="postado">✅ Já Postada</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Copy / Descrição (Legenda)</label>
+                    <textarea id="inputDesc" rows="4" placeholder="Escreva a legenda aqui..."></textarea>
+                </div>
+
+                <div class="input-group">
+                    <label>Hashtags</label>
+                    <input type="text" id="inputTags" placeholder="Ex: #design #saude #seguros">
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="btn-excluir" id="btnExcluirModal" onclick="excluirPostModal()">🗑️ Excluir</button>
+                    <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
+                    <button class="btn-novo" onclick="salvarPost()">Salvar Post</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://flhefrapcznmkumvxrdf.supabase.co';
+        const supabaseKey = 'sb_publishable_mbe3nl2qggrFGt0w-JSaDw_i2BhuOxF';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        let calendarInstance = null;
+        let listaPosts = [];
+        let postEditandoId = null; 
+        
+        // Perfis fixos que aparecerão como colunas na Visão de Lista
+        const perfisGerenciados = ['NOPE Design', 'Brand Seguros', 'BV Pinho', 'DC Teodoro', 'Outro'];
+
+        async function protegerTela() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) window.location.href = '../index.html'; 
+            else carregarPosts(); 
+        }
+        protegerTela();
+
+        async function fazerLogout() { await supabaseClient.auth.signOut(); window.location.href = '../index.html'; }
+
+        // --- SISTEMA DE VISUALIZAÇÃO ---
+        function mudarView(view) {
+            document.getElementById('view-calendar').style.display = view === 'calendar' ? 'block' : 'none';
+            document.getElementById('view-lista').style.display = view === 'lista' ? 'block' : 'none';
+            document.getElementById('btn-view-calendar').classList.toggle('active', view === 'calendar');
+            document.getElementById('btn-view-lista').classList.toggle('active', view === 'lista');
+
+            if (view === 'calendar' && calendarInstance) {
+                setTimeout(() => { calendarInstance.render(); }, 100);
+            }
+        }
+
+        // --- BANCO DE DADOS ---
+        async function carregarPosts() {
+            const { data, error } = await supabaseClient.from('postagens').select('*').order('data_postagem', { ascending: true });
+            if (!error) {
+                listaPosts = data;
+                renderizarCalendario(data);
+                renderizarLista(data);
+            }
+        }
+
+        // --- CALENDÁRIO ---
+        function renderizarCalendario(posts) {
+            const eventos = posts.map(p => {
+                let cor = '#339DD9'; // Padrão NOPE / Outros
+                if(p.perfil === 'Brand Seguros') cor = '#E3342F';
+                if(p.perfil === 'BV Pinho') cor = '#F6993F';
+                if(p.perfil === 'DC Teodoro') cor = '#00BCD4'; // Azul piscina para DC Teodoro
+                
+                // Mudar para verde se postado, ou laranja se editado
+                if(p.status === 'editada') cor = '#F6993F'; 
+                if(p.status === 'postado') cor = '#38C172';
+
+                // Adiciona emoji ao título baseado no status
+                let icone = '⏳';
+                if (p.status === 'editada') icone = '🎨';
+                if (p.status === 'postado') icone = '✅';
+
+                return {
+                    id: p.id,
+                    title: `${icone} [${p.perfil}] ${p.titulo}`,
+                    start: p.data_postagem,
+                    backgroundColor: cor,
+                    borderColor: cor
+                };
+            });
+
+            const calendarEl = document.getElementById('calendar');
+            if (calendarInstance) calendarInstance.destroy();
+            
+            calendarInstance = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'pt-br',
+                headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' },
+                events: eventos,
+                eventClick: function(info) { abrirModalEdicao(info.event.id); }
+            });
+            calendarInstance.render();
+        }
+
+        // --- LISTA POR DIAS E PERFIS ---
+        function renderizarLista(posts) {
+            const containerLista = document.getElementById('view-lista');
+            containerLista.innerHTML = '';
+
+            const postsPorDia = {};
+            posts.forEach(p => {
+                if(!p.data_postagem) return;
+                if(!postsPorDia[p.data_postagem]) postsPorDia[p.data_postagem] = [];
+                postsPorDia[p.data_postagem].push(p);
+            });
+
+            const datasOrdenadas = Object.keys(postsPorDia).sort();
+
+            datasOrdenadas.forEach(dataString => {
+                const dataObj = new Date(dataString + 'T12:00:00'); 
+                const dataFormatada = dataObj.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+
+                const blocoHTML = document.createElement('div');
+                blocoHTML.className = 'dia-bloco';
+                
+                let gridHTML = `<div class="dia-header">📅 ${dataFormatada}</div><div class="perfis-grid">`;
+
+                perfisGerenciados.forEach(perfil => {
+                    const postsDoPerfil = postsPorDia[dataString].filter(p => p.perfil === perfil);
+                    
+                    gridHTML += `<div class="perfil-coluna">
+                                    <div class="perfil-titulo">${perfil}</div>`;
+                    
+                    if (postsDoPerfil.length === 0) {
+                        gridHTML += `<div style="text-align: center; color: #aaa; font-size: 0.8rem; padding: 20px 0;">Sem posts agendados</div>`;
+                    } else {
+                        postsDoPerfil.forEach(post => {
+                            const classeFormato = `formato-${post.formato.toLowerCase()}`;
+                            
+                            // Define visual do card baseado no status
+                            let textoStatus = '⏳ Pendente';
+                            let classeBadgeStatus = 'badge-status-pendente';
+                            let classePost = '';
+
+                            if (post.status === 'editada') {
+                                textoStatus = '🎨 Arte Pronta';
+                                classeBadgeStatus = 'badge-status-editada';
+                                classePost = 'editada';
+                            } else if (post.status === 'postado') {
+                                textoStatus = '✅ Postada';
+                                classeBadgeStatus = 'badge-status-postado';
+                                classePost = 'postado';
+                            }
+
+                            // A MÁGICA DO BOTÃO AQUI: O botão mostra o texto e é interativo!
+                            gridHTML += `
+                                <div class="post-card ${classePost}" onclick="abrirModalEdicao(${post.id})">
+                                    <div class="card-header-flex">
+                                        <span class="badge-formato ${classeFormato}">${post.formato}</span>
+                                        <button class="badge-status-click ${classeBadgeStatus}" onclick="alternarStatus(event, ${post.id}, '${post.status}')" title="Clique para mudar o status da arte">${textoStatus}</button>
+                                    </div>
+                                    <h4>${post.titulo}</h4>
+                                    ${post.descricao ? `<div class="post-desc">${post.descricao}</div>` : ''}
+                                    ${post.hashtags ? `<div class="post-hash">${post.hashtags}</div>` : ''}
+                                </div>
+                            `;
+                        });
+                    }
+                    gridHTML += `</div>`;
+                });
+
+                gridHTML += `</div>`;
+                blocoHTML.innerHTML = gridHTML;
+                containerLista.appendChild(blocoHTML);
+            });
+            
+            if (datasOrdenadas.length === 0) {
+                containerLista.innerHTML = `<div style="text-align: center; color: #777; margin-top: 50px;">Nenhuma postagem agendada no momento.</div>`;
+            }
+        }
+
+        // --- ALTERNAR STATUS CLICANDO DIRETO NO CARD ---
+        async function alternarStatus(event, id, statusAtual) {
+            event.stopPropagation(); // Evita abrir o modal de edição ao clicar no botão de status
+            
+            // Ciclo rápido: Pendente -> Editada -> Postado -> Pendente...
+            let novoStatus = 'pendente';
+            if (statusAtual === 'pendente') novoStatus = 'editada';
+            else if (statusAtual === 'editada') novoStatus = 'postado';
+            else novoStatus = 'pendente';
+
+            await supabaseClient.from('postagens').update({ status: novoStatus }).eq('id', id);
+            carregarPosts();
+        }
+
+        // --- LÓGICA DO MODAL (NOVO E EDIÇÃO) ---
+        function abrirModal() {
+            postEditandoId = null;
+            document.getElementById('modal-titulo').innerText = 'Agendar Nova Postagem';
+            
+            document.getElementById('inputTitulo').value = ''; 
+            document.getElementById('inputPerfil').value = 'NOPE Design'; 
+            document.getElementById('inputFormato').value = 'Reels'; 
+            document.getElementById('inputStatus').value = 'pendente';
+            document.getElementById('inputData').value = '';
+            document.getElementById('inputDesc').value = '';
+            document.getElementById('inputTags').value = '';
+            
+            document.getElementById('btnExcluirModal').style.display = 'none';
+            document.getElementById('modalPost').style.display = 'flex';
+        }
+
+        function abrirModalEdicao(id) {
+            postEditandoId = id;
+            const p = listaPosts.find(x => x.id == id);
+            if(!p) return;
+            
+            document.getElementById('modal-titulo').innerText = 'Editar Postagem';
+            document.getElementById('inputTitulo').value = p.titulo;
+            document.getElementById('inputPerfil').value = p.perfil;
+            document.getElementById('inputFormato').value = p.formato;
+            document.getElementById('inputStatus').value = p.status || 'pendente';
+            document.getElementById('inputData').value = p.data_postagem;
+            document.getElementById('inputDesc').value = p.descricao || '';
+            document.getElementById('inputTags').value = p.hashtags || '';
+            
+            document.getElementById('btnExcluirModal').style.display = 'block';
+            document.getElementById('modalPost').style.display = 'flex';
+        }
+
+        async function salvarPost() {
+            const titulo = document.getElementById('inputTitulo').value;
+            const perfil = document.getElementById('inputPerfil').value;
+            const formato = document.getElementById('inputFormato').value;
+            const status = document.getElementById('inputStatus').value;
+            const data = document.getElementById('inputData').value;
+            const desc = document.getElementById('inputDesc').value;
+            const tags = document.getElementById('inputTags').value;
+            
+            if (!titulo || !data) return alert("Título e Data são obrigatórios!");
+
+            const payload = { 
+                titulo: titulo, 
+                perfil: perfil,
+                formato: formato,
+                status: status,
+                data_postagem: data,
+                descricao: desc,
+                hashtags: tags
+            };
+
+            if (postEditandoId) {
+                await supabaseClient.from('postagens').update(payload).eq('id', postEditandoId);
+            } else {
+                await supabaseClient.from('postagens').insert([payload]);
+            }
+            
+            fecharModal(); carregarPosts();
+        }
+
+        async function excluirPostModal() {
+            if(!postEditandoId) return;
+            if(confirm("Tem certeza que deseja apagar esta postagem?")) {
+                await supabaseClient.from('postagens').delete().eq('id', postEditandoId);
+                fecharModal();
+                carregarPosts();
+            }
+        }
+
+        function fecharModal() { document.getElementById('modalPost').style.display = 'none'; }
+    </script>
+</body>
+</html>

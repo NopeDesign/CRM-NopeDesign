@@ -33,8 +33,8 @@
         .filters-bar { background-color: var(--branco); padding: 10px 30px; display: flex; gap: 20px; border-bottom: 1px solid var(--cinza-borda); align-items: center; }
         .filter-group { display: flex; align-items: center; gap: 8px; }
         .filter-group label { font-size: 0.9rem; font-weight: 600; color: var(--chumbo-escuro); }
-        .filter-group input { padding: 6px 10px; border: 1px solid var(--cinza-borda); border-radius: 4px; outline: none; font-size: 0.9rem; }
-        .filter-group input:focus { border-color: var(--azul-principal); }
+        .filter-group input, .filter-group select { padding: 6px 10px; border: 1px solid var(--cinza-borda); border-radius: 4px; outline: none; font-size: 0.9rem; }
+        .filter-group input:focus, .filter-group select:focus { border-color: var(--azul-principal); }
         .btn-limpar { background-color: #e0e0e0; color: #333; padding: 6px 12px; font-size: 0.85rem; }
         
         /* BOTÕES DE ALTERNAR VISUALIZAÇÃO */
@@ -93,9 +93,10 @@
     <aside class="sidebar">
         <div class="sidebar-logo"><h1><span>N</span>OPE CRM</h1></div>
         <nav class="sidebar-nav">
-            <!-- CAMINHOS CORRIGIDOS AQUI -->
+            <!-- Caminhos e aba ativa corrigidos -->
             <a href="../dashboard/dashboard.html" class="nav-link"><span>📊</span> Dashboard</a>
             <a href="#" class="nav-link active"><span>👥</span> Gestão de Leads</a>
+            <a href="../cronograma/index.html" class="nav-link"><span>📱</span> Social Media</a>
             <a href="../rotina/index.html" class="nav-link"><span>🗓️</span> Minha Rotina</a>
             <a href="#" onclick="fazerLogout()" class="nav-link" style="margin-top: auto;"><span>🚪</span> Sair</a>
         </nav>
@@ -113,7 +114,12 @@
 
         <div class="filters-bar">
             <div class="filter-group"><label>📞 Filtrar DDD:</label><input type="text" id="filterDDD" placeholder="Ex: 11" maxlength="2" onkeyup="renderizarLeads()" style="width: 70px; text-align: center;"></div>
-            <div class="filter-group"><label>📅 Data de Entrada:</label><input type="date" id="filterData" onchange="renderizarLeads()"></div>
+            <div class="filter-group">
+                <label>📅 Data de Entrada:</label>
+                <select id="filterData" onchange="renderizarLeads()" style="background: var(--branco);">
+                    <option value="">Todas as datas</option>
+                </select>
+            </div>
             <button class="btn-limpar" onclick="limparFiltros()">Limpar Filtros</button>
             
             <!-- ALTERNAR VISUALIZAÇÃO -->
@@ -210,6 +216,39 @@
             document.getElementById('btn-view-tabela').classList.toggle('active', view === 'tabela');
         }
 
+        // Função para atualizar o dropdown de datas
+        function atualizarFiltroDatas() {
+            const selectData = document.getElementById('filterData');
+            const valorSelecionado = selectData.value; // Salva o que já estava filtrado
+
+            // Extrai apenas a parte da data (YYYY-MM-DD) do created_at ignorando leads sem data
+            const datasUnicas = [...new Set(leads.map(lead => {
+                return lead.created_at ? lead.created_at.split('T')[0] : null;
+            }).filter(data => data !== null))];
+
+            // Ordena da data mais recente para a mais antiga
+            datasUnicas.sort((a, b) => new Date(b) - new Date(a));
+
+            // Reseta as opções do select
+            selectData.innerHTML = '<option value="">Todas as datas</option>';
+
+            // Cria as novas opções formatadas como DD/MM/YYYY
+            datasUnicas.forEach(data => {
+                const [ano, mes, dia] = data.split('-');
+                const dataFormatada = `${dia}/${mes}/${ano}`;
+                
+                const option = document.createElement('option');
+                option.value = data; // O valor interno continua YYYY-MM-DD para o filtro funcionar
+                option.textContent = dataFormatada;
+                selectData.appendChild(option);
+            });
+
+            // Restaura a seleção anterior caso a data continue existindo
+            if (datasUnicas.includes(valorSelecionado)) {
+                selectData.value = valorSelecionado;
+            }
+        }
+
         async function carregarLeads() {
             let todosLeads = []; let limite = 1000; let inicio = 0; let temMais = true;
             while (temMais) {
@@ -217,7 +256,9 @@
                 if (error) { break; } todosLeads = todosLeads.concat(data);
                 if (data.length < limite) { temMais = false; } else { inicio += limite; }
             }
-            leads = todosLeads; renderizarLeads();
+            leads = todosLeads; 
+            atualizarFiltroDatas(); // Atualiza a lista de datas exclusivas
+            renderizarLeads();
         }
 
         function renderizarLeads() {

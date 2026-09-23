@@ -61,7 +61,7 @@
 
         /* MODAL */
         .modal-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
-        .modal { background: var(--branco); padding: 30px; border-radius: 8px; width: 450px; }
+        .modal { background: var(--branco); padding: 30px; border-radius: 8px; width: 450px; max-height: 90vh; overflow-y: auto; }
         .input-group { margin-bottom: 15px; }
         .input-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
         .input-group input, .input-group textarea, .input-group select { width: 100%; padding: 10px; border: 1px solid var(--cinza-borda); border-radius: 5px; font-family: inherit; outline: none;}
@@ -73,6 +73,10 @@
         .modal-actions { display: flex; gap: 10px; margin-top: 25px; align-items: center; }
         .btn-excluir-modal { background: #E3342F; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; margin-right: auto; font-weight: bold; display: none; }
         .btn-cancelar { background: #ccc; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+
+        /* Cabeçalho do usuário logado */
+        .user-info { font-size: 0.85rem; color: var(--texto-cinza); display: flex; align-items: center; gap: 8px; }
+        .user-info span { font-weight: bold; color: var(--azul-principal); }
     </style>
 </head>
 <body>
@@ -80,10 +84,11 @@
     <aside class="sidebar">
         <div class="sidebar-logo"><h1><span>N</span>OPE CRM</h1></div>
         <nav class="sidebar-nav">
-            <a href="../dashboard/dashboard.html" class="nav-link"><span>📊</span> Dashboard</a>
-            <a href="../painel/index.html" class="nav-link"><span>👥</span> Gestão de Leads</a>
-            <a href="#" class="nav-link active"><span>🗓️</span> Minha Rotina</a>
-            <a href="#" onclick="fazerLogout()" class="nav-link" style="margin-top: auto;"><span>🚪</span> Sair</a>
+    <a href="../dashboard/dashboard.html" class="nav-link"><span>📊</span> Dashboard</a>
+    <a href="../painel/index.html" class="nav-link"><span>👥</span> Gestão de Leads</a>
+    <a href="../cronograma/index.html" class="nav-link"><span>📱</span> Social Media</a>
+    <a href="#" class="nav-link active"><span>🗓️</span> Minha Rotina</a>
+    <a href="#" onclick="fazerLogout()" class="nav-link" style="margin-top: auto;"><span>🚪</span> Sair</a>
         </nav>
     </aside>
 
@@ -91,6 +96,10 @@
         <header>
             <h2 class="header-title">Organização e Demandas</h2>
             
+            <div class="user-info">
+                Logado como: <span id="displayUsuarioLogado">Carregando...</span>
+            </div>
+
             <div class="view-toggle">
                 <button class="btn-view active" id="btn-view-kanban" onclick="mudarView('kanban')">🖼️ Quadro (Hoje)</button>
                 <button class="btn-view" id="btn-view-calendar" onclick="mudarView('calendar')">📅 Calendário</button>
@@ -116,6 +125,17 @@
             <div class="modal">
                 <h2 id="modal-titulo">Adicionar Demanda / Rotina</h2>
                 
+                <div class="input-group">
+                    <label>Responsável pela Tarefa</label>
+                    <select id="inputResponsavel">
+                        <!-- ADICIONE AQUI OS EMAILS DOS MEMBROS DA SUA EQUIPE (os mesmos usados no login do Supabase) -->
+                        <option value="seu-email-aqui@exemplo.com">Meu Nome (Você)</option>
+                        <option value="emaildojoao@exemplo.com">João</option>
+                        <option value="emaildamaria@exemplo.com">Maria</option>
+                    </select>
+                    <small style="color: #666; font-size: 0.75rem;">A tarefa aparecerá apenas na tela do responsável selecionado.</small>
+                </div>
+
                 <div class="input-group">
                     <label>Título (Ex: Reunião BV Pinho)</label>
                     <input type="text" id="inputTitulo">
@@ -170,10 +190,29 @@
         let calendarInstance = null;
         let listaTarefasGlobais = [];
         let tarefaEditandoId = null; 
+        
+        // VARIÁVEL PARA GUARDAR O EMAIL DO USUÁRIO LOGADO
+        let usuarioLogadoEmail = '';
 
         async function protegerTela() {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) { window.location.href = '../index.html'; } else { carregarTarefas(); }
+            if (!session) { 
+                window.location.href = '../index.html'; 
+            } else { 
+                usuarioLogadoEmail = session.user.email; // Pega o email do usuário
+                document.getElementById('displayUsuarioLogado').innerText = usuarioLogadoEmail;
+                
+                // Se o email logado não estiver nas opções do select, a gente adiciona provisoriamente para evitar erros
+                const selectResp = document.getElementById('inputResponsavel');
+                if (!Array.from(selectResp.options).some(opt => opt.value === usuarioLogadoEmail)) {
+                    const novaOpcao = document.createElement('option');
+                    novaOpcao.value = usuarioLogadoEmail;
+                    novaOpcao.text = usuarioLogadoEmail + " (Você)";
+                    selectResp.add(novaOpcao, selectResp[0]);
+                }
+                
+                carregarTarefas(); 
+            }
         }
         protegerTela();
 
@@ -199,7 +238,13 @@
 
         // --- DADOS E RENDERS ---
         async function carregarTarefas() {
-            const { data, error } = await supabaseClient.from('tarefas').select('*').order('id', { ascending: false });
+            // A MÁGICA ACONTECE AQUI: O .eq('responsavel', usuarioLogadoEmail) filtra o banco!
+            const { data, error } = await supabaseClient
+                .from('tarefas')
+                .select('*')
+                .eq('responsavel', usuarioLogadoEmail) 
+                .order('id', { ascending: false });
+                
             if (!error) {
                 listaTarefasGlobais = data;
                 renderizarQuadro(data);
@@ -341,7 +386,10 @@
             document.getElementById('inputTitulo').value = ''; 
             document.getElementById('inputDesc').value = ''; 
             document.getElementById('inputData').value = '';
-            document.getElementById('inputRecorrencia').value = 'unica'; 
+            document.getElementById('inputRecorrencia').value = 'unica';
+            
+            // Define o responsável padrão como a pessoa logada no momento
+            document.getElementById('inputResponsavel').value = usuarioLogadoEmail;
             
             verificarRecorrencia();
             document.querySelectorAll('.dias-checkboxes input').forEach(c => c.checked = false);
@@ -360,6 +408,9 @@
             document.getElementById('inputDesc').value = t.descricao || '';
             document.getElementById('inputData').value = t.data_limite || '';
             document.getElementById('inputRecorrencia').value = t.tipo_recorrencia || 'unica';
+            
+            // Carrega quem é o responsável na hora de editar
+            document.getElementById('inputResponsavel').value = t.responsavel || usuarioLogadoEmail;
             
             verificarRecorrencia();
             
@@ -381,8 +432,10 @@
             const desc = document.getElementById('inputDesc').value;
             const data = document.getElementById('inputData').value;
             const tipo = document.getElementById('inputRecorrencia').value;
+            const responsavel = document.getElementById('inputResponsavel').value; // Puxa o e-mail escolhido
             
             if (!titulo) return alert("O título é obrigatório!");
+            if (!responsavel) return alert("Selecione um responsável para a tarefa.");
 
             let diasSelecionados = null;
             if (tipo === 'semanal') {
@@ -396,7 +449,8 @@
                 descricao: desc, 
                 data_limite: data || null, 
                 tipo_recorrencia: tipo,
-                dias_semana: diasSelecionados
+                dias_semana: diasSelecionados,
+                responsavel: responsavel // Salva no banco de dados para a pessoa certa
             };
 
             if (tarefaEditandoId) {
