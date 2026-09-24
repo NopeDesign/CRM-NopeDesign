@@ -11,7 +11,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: var(--fundo); color: var(--chumbo-escuro); height: 100vh; display: flex; overflow: hidden; }
 
-        /* --- ANIMAÇÕES DE ENTRADA --- */
         @keyframes fadeSlideUp {
             from { opacity: 0; transform: translateY(15px); }
             to { opacity: 1; transform: translateY(0); }
@@ -35,7 +34,6 @@
         .card, .leads-table tbody tr {
             animation: fadeSlideUp 0.4s ease-out both;
         }
-        /* ---------------------------- */
 
         .sidebar-logo { padding: 20px; border-bottom: 1px solid var(--chumbo-claro); }
         .sidebar-logo h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 5px; }
@@ -54,21 +52,19 @@
         .btn-importar { background-color: #28a745; }
         .btn-importar:hover { background-color: #218838; }
 
-        .filters-bar { background-color: var(--branco); padding: 10px 30px; display: flex; gap: 20px; border-bottom: 1px solid var(--cinza-borda); align-items: center; }
+        .filters-bar { background-color: var(--branco); padding: 10px 30px; display: flex; gap: 20px; border-bottom: 1px solid var(--cinza-borda); align-items: center; flex-wrap: wrap; }
         .filter-group { display: flex; align-items: center; gap: 8px; }
         .filter-group label { font-size: 0.9rem; font-weight: 600; color: var(--chumbo-escuro); }
         .filter-group input, .filter-group select { padding: 6px 10px; border: 1px solid var(--cinza-borda); border-radius: 4px; outline: none; font-size: 0.9rem; }
         .filter-group input:focus, .filter-group select:focus { border-color: var(--azul-principal); }
         .btn-limpar { background-color: #e0e0e0; color: #333; padding: 6px 12px; font-size: 0.85rem; }
         
-        /* BOTÕES DE ALTERNAR VISUALIZAÇÃO */
         .view-toggle { display: flex; gap: 5px; margin-left: auto; background: var(--fundo); padding: 4px; border-radius: 6px; border: 1px solid var(--cinza-borda); }
         .btn-view { padding: 6px 12px; border: none; background: transparent; cursor: pointer; border-radius: 4px; font-size: 0.85rem; transition: 0.3s; font-weight: 600; color: var(--texto-cinza); }
         .btn-view.active { background: var(--branco); color: var(--azul-principal); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-        /* VIEW KANBAN */
         .board { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; padding: 30px; flex: 1; overflow-y: auto; }
-        .coluna { background-color: var(--branco); border-radius: 8px; display: flex; flex-direction: column; border: 1px solid var(--cinza-borda); max-height: calc(100vh - 190px); }
+        .coluna { background-color: var(--branco); border-radius: 8px; display: flex; flex-direction: column; border: 1px solid var(--cinza-borda); max-height: calc(100vh - 210px); }
         .coluna-header { padding: 18px 20px; border-bottom: 1px solid var(--fundo); display: flex; justify-content: space-between; align-items: center; }
         .contador { background-color: var(--fundo); padding: 4px 12px; border-radius: 12px; font-size: 0.9rem; font-weight: bold; border: 1px solid var(--cinza-borda); }
         .lista-cards { padding: 20px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
@@ -85,11 +81,10 @@
         .select-corretora { padding: 8px; border-radius: 4px; border: 1px solid var(--cinza-borda); flex: 1; font-size: 0.9rem; outline: none; }
         .btn-enviar { background-color: var(--chumbo-escuro); padding: 9px 18px; border-radius: 4px; }
         
-        /* VIEW TABELA */
         .table-container { padding: 25px 30px; flex: 1; overflow-y: auto; display: none; }
         .leads-table { width: 100%; border-collapse: collapse; background: var(--branco); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid var(--cinza-borda); }
         .leads-table th, .leads-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--cinza-borda); font-size: 0.85rem; }
-        .leads-table th { background-color: var(--fundo); color: var(--chumbo-escuro); font-weight: bold; text-transform: uppercase; font-size: 0.8rem; }
+        .leads-table th { background-color: var(--fundo); color: var(--chumbo-escuro); font-weight: bold; text-transform: uppercase; font-size: 0.8rem; position: sticky; top: 0; z-index: 2; }
         .leads-table tr:hover { background-color: #F8F9FA; }
         .leads-table td.td-acoes { display: flex; gap: 5px; }
 
@@ -97,6 +92,10 @@
         .tag-brand { background-color: #E3342F; } .tag-bvpinho { background-color: #F6993F; } .tag-dcteodoro { background-color: #38C172; } 
         .tag-aguiar { background-color: #00BCD4; } .tag-caslu { background-color: #9C27B0; } .tag-lumenza { background-color: #E91E63; } 
         .tag-outra { background-color: var(--chumbo-escuro); }
+
+        .load-more-container { text-align: center; padding: 15px; grid-column: span 2; }
+        .btn-carregar-mais { background-color: var(--chumbo-claro); color: var(--branco); padding: 10px 25px; border-radius: 6px; font-size: 0.9rem; }
+        .btn-carregar-mais:hover { background-color: var(--chumbo-escuro); }
 
         #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 12px; position: fixed; z-index: 1000; left: 50%; transform: translateX(-50%); bottom: 30px; font-size: 0.9rem; opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
         #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
@@ -136,10 +135,10 @@
         </header>
 
         <div class="filters-bar">
-            <div class="filter-group"><label>📞 Filtrar DDD:</label><input type="text" id="filterDDD" placeholder="Ex: 11" maxlength="2" onkeyup="renderizarLeads()" style="width: 70px; text-align: center;"></div>
+            <div class="filter-group"><label>📞 Filtrar DDD:</label><input type="text" id="filterDDD" placeholder="Ex: 11" maxlength="2" onkeyup="aplicarFiltros()" style="width: 70px; text-align: center;"></div>
             <div class="filter-group">
-                <label>📅 Data de Entrada:</label>
-                <select id="filterData" onchange="renderizarLeads()" style="background: var(--branco);">
+                <label>📅 Data:</label>
+                <select id="filterData" onchange="aplicarFiltros()" style="background: var(--branco);">
                     <option value="">Todas as datas</option>
                 </select>
             </div>
@@ -152,8 +151,14 @@
         </div>
 
         <main class="board" id="view-kanban">
-            <section class="coluna"><div class="coluna-header"><h2>Para Envio</h2><span class="contador" id="count-envio">0</span></div><div class="lista-cards" id="lista-envio"></div></section>
-            <section class="coluna"><div class="coluna-header"><h2>Enviados</h2><span class="contador" id="count-enviados">0</span></div><div class="lista-cards" id="lista-enviados"></div></section>
+            <section class="coluna">
+                <div class="coluna-header"><h2>Para Envio</h2><span class="contador" id="count-envio">0</span></div>
+                <div class="lista-cards" id="lista-envio"></div>
+            </section>
+            <section class="coluna">
+                <div class="coluna-header"><h2>Enviados</h2><span class="contador" id="count-enviados">0</span></div>
+                <div class="lista-cards" id="lista-enviados"></div>
+            </section>
         </main>
 
         <div class="table-container" id="view-tabela">
@@ -171,9 +176,9 @@
                         <th>Ações</th>
                     </tr>
                 </thead>
-                <tbody id="lista-tabela">
-                </tbody>
+                <tbody id="lista-tabela"></tbody>
             </table>
+            <div id="load-more-table-container" style="text-align: center; padding: 15px;"></div>
         </div>
 
         <div id="toast">✅ Texto copiado! Pronto para colar no WhatsApp.</div>
@@ -200,15 +205,18 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZsaGVmcmFwY3pubWt1bXZ4cmRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1NjEzODQsImV4cCI6MjEwNTEzNzM4NH0.aMzjJdgPXI7Ansm3KaiS-1VlyBwgJVoA_U9xx0mViso';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
+        let leadsCarregados = [];
+        let limitePorPagina = 40;
+        let paginaAtual = 0;
+        let temMaisDados = true;
+
         async function protegerTela() {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) { window.location.href = '../index.html'; } else { carregarLeads(); }
+            if (!session) { window.location.href = '../index.html'; } else { inicializarCRM(); }
         }
         protegerTela();
 
         async function fazerLogout() { await supabaseClient.auth.signOut(); window.location.href = '../index.html'; }
-
-        let leads = [];
 
         function limparNumero(num) { return num ? String(num).replace(/\D/g, '') : ''; }
         function formatarTelefone(telefone) {
@@ -224,7 +232,6 @@
             const toast = document.getElementById("toast");
             toast.className = "show"; setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
         }
-        function limparFiltros() { document.getElementById('filterDDD').value = ''; document.getElementById('filterData').value = ''; renderizarLeads(); }
 
         function mudarView(view) {
             document.getElementById('view-kanban').style.display = view === 'kanban' ? 'grid' : 'none';
@@ -233,59 +240,87 @@
             document.getElementById('btn-view-tabela').classList.toggle('active', view === 'tabela');
         }
 
-        function atualizarFiltroDatas() {
+        async function inicializarCRM() {
+            await carregarContadoresTotais();
+            await carregarOpcoesDatas();
+            await carregarMaisLeads(true);
+        }
+
+        async function carregarContadoresTotais() {
+            const { count: totalEnvio } = await supabaseClient.from('leads').select('*', { count: 'exact', head: true }).eq('status', 'para_envio');
+            const { count: totalEnviados } = await supabaseClient.from('leads').select('*', { count: 'exact', head: true }).eq('status', 'enviado');
+            
+            document.getElementById('count-envio').innerText = totalEnvio || 0;
+            document.getElementById('count-enviados').innerText = totalEnviados || 0;
+        }
+
+        async function carregarOpcoesDatas() {
+            const { data } = await supabaseClient.from('leads').select('created_at').order('id', { ascending: false });
+            if (!data) return;
             const selectData = document.getElementById('filterData');
-            const valorSelecionado = selectData.value;
-
-            const datasUnicas = [...new Set(leads.map(lead => {
-                return lead.created_at ? lead.created_at.split('T')[0] : null;
-            }).filter(data => data !== null))];
-
+            const datasUnicas = [...new Set(data.map(l => l.created_at ? l.created_at.split('T')[0] : null).filter(Boolean))];
+            
             datasUnicas.sort((a, b) => new Date(b) - new Date(a));
             selectData.innerHTML = '<option value="">Todas as datas</option>';
-
-            datasUnicas.forEach(data => {
-                const [ano, mes, dia] = data.split('-');
-                const dataFormatada = `${dia}/${mes}/${ano}`;
-                const option = document.createElement('option');
-                option.value = data;
-                option.textContent = dataFormatada;
-                selectData.appendChild(option);
+            datasUnicas.forEach(d => {
+                const [ano, mes, dia] = d.split('-');
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = `${dia}/${mes}/${ano}`;
+                selectData.appendChild(opt);
             });
-
-            if (datasUnicas.includes(valorSelecionado)) {
-                selectData.value = valorSelecionado;
-            }
         }
 
-        async function carregarLeads() {
-            let todosLeads = []; let limite = 1000; let inicio = 0; let temMais = true;
-            while (temMais) {
-                const { data, error } = await supabaseClient.from('leads').select('*').order('id', { ascending: false }).range(inicio, inicio + limite - 1);
-                if (error) { break; } todosLeads = todosLeads.concat(data);
-                if (data.length < limite) { temMais = false; } else { inicio += limite; }
+        async function carregarMaisLeads(reiniciar = false) {
+            if (reiniciar) {
+                paginaAtual = 0;
+                leadsCarregados = [];
+                temMaisDados = true;
             }
-            leads = todosLeads; 
-            atualizarFiltroDatas();
-            renderizarLeads();
+
+            const filtroDDD = document.getElementById('filterDDD').value.trim();
+            const filtroData = document.getElementById('filterData').value;
+
+            let query = supabaseClient.from('leads').select('*').order('id', { ascending: false });
+
+            if (filtroDDD) query = query.ilike('whatsapp', `${filtroDDD}%`);
+            if (filtroData) query = query.gte('created_at', `${filtroData}T00:00:00`).lte('created_at', `${filtroData}T23:59:59`);
+
+            const inicio = paginaAtual * limitePorPagina;
+            query = query.range(inicio, inicio + limitePorPagina - 1);
+
+            const { data, error } = await query;
+            if (error) { alert('Erro ao carregar leads'); return; }
+
+            if (data.length < limitePorPagina) {
+                temMaisDados = false;
+            }
+
+            leadsCarregados = leadsCarregados.concat(data);
+            paginaAtual++;
+            renderizarTela();
         }
 
-        function renderizarLeads() {
-            const cEnvio = document.getElementById('lista-envio'); const cEnviados = document.getElementById('lista-enviados');
+        function aplicarFiltros() {
+            carregarMaisLeads(true);
+        }
+
+        function limparFiltros() {
+            document.getElementById('filterDDD').value = '';
+            document.getElementById('filterData').value = '';
+            carregarMaisLeads(true);
+        }
+
+        function renderizarTela() {
+            const cEnvio = document.getElementById('lista-envio');
+            const cEnviados = document.getElementById('lista-enviados');
             const cTabela = document.getElementById('lista-tabela');
             
-            cEnvio.innerHTML = ''; cEnviados.innerHTML = ''; cTabela.innerHTML = '';
-            let contEnvio = 0, contEnviados = 0;
+            cEnvio.innerHTML = ''; 
+            cEnviados.innerHTML = ''; 
+            cTabela.innerHTML = '';
 
-            const filtroDDD = document.getElementById('filterDDD').value.trim(); const filtroData = document.getElementById('filterData').value;
-            const leadsFiltrados = leads.filter(lead => {
-                let passaDDD = true; let passaData = true;
-                if (filtroDDD) passaDDD = lead.whatsapp && lead.whatsapp.startsWith(filtroDDD);
-                if (filtroData) passaData = lead.created_at && lead.created_at.startsWith(filtroData);
-                return passaDDD && passaData;
-            });
-
-            leadsFiltrados.forEach((lead, index) => {
+            leadsCarregados.forEach((lead, index) => {
                 const telVisual = formatarTelefone(lead.whatsapp);
                 const valData = lead.created_at ? new Date(lead.created_at).toLocaleDateString('pt-BR') : '-';
                 const valCidade = formatarDado(lead.cidade);
@@ -294,49 +329,65 @@
                 const valPlano = formatarDado(lead.tem_plano);
                 const valObs = formatarDado(lead.observacao);
 
+                // --- CARD KANBAN ---
                 const card = document.createElement('div'); 
                 card.className = 'card';
-                card.style.animationDelay = `${index * 0.04}s`;
 
                 const infoHTML = `
                     <div class="lead-details">
                         <div class="detail-item" style="grid-column: span 2;"><strong>📅 Adicionado em</strong> ${valData}</div>
-                        <div class="detail-item"><strong>📍 Cidade</strong> ${valCidade}</div><div class="detail-item"><strong>👥 Qtd Vidas</strong> ${valVidas}</div>
-                        <div class="detail-item"><strong>🏢 Possui CNPJ?</strong> ${valCnpj}</div><div class="detail-item"><strong>🏥 Já tem plano?</strong> ${valPlano}</div>
+                        <div class="detail-item"><strong>📍 Cidade</strong> ${valCidade}</div>
+                        <div class="detail-item"><strong>👥 Qtd Vidas</strong> ${valVidas}</div>
+                        <div class="detail-item"><strong>🏢 Possui CNPJ?</strong> ${valCnpj}</div>
+                        <div class="detail-item"><strong>🏥 Já tem plano?</strong> ${valPlano}</div>
                     </div>
                     <div class="obs-box"><strong>Nota/Obs:</strong> ${valObs}</div>`;
 
                 if (lead.status === 'para_envio') {
-                    contEnvio++;
                     card.innerHTML = `<h3>${lead.nome}</h3><div class="telefone">📞 ${telVisual}</div>${infoHTML}
                     <div class="card-actions">
                         <select class="select-corretora" id="select-kanban-${lead.id}">
-                            <option value="" disabled selected>Selecionar...</option><option value="Aguiar Corretora">Aguiar Corretora</option><option value="BV Pinho">BV Pinho</option><option value="Brand Seguros">Brand Seguros</option><option value="Corretora Caslu">Corretora Caslu</option><option value="DC Teodoro">DC Teodoro</option><option value="Lumenza">Lumenza</option><option value="Outra">Outra</option>
+                            <option value="" disabled selected>Selecionar...</option>
+                            <option value="Aguiar Corretora">Aguiar Corretora</option><option value="BV Pinho">BV Pinho</option><option value="Brand Seguros">Brand Seguros</option><option value="Corretora Caslu">Corretora Caslu</option><option value="DC Teodoro">DC Teodoro</option><option value="Lumenza">Lumenza</option><option value="Outra">Outra</option>
                         </select>
                         <button class="btn-enviar" onclick="moverParaEnviado(${lead.id}, 'kanban')">Enviar</button>
                     </div>`;
                     cEnvio.appendChild(card);
                 } else {
-                    contEnviados++;
-                    let t = 'tag-outra'; if(lead.corretora === 'Brand Seguros') t = 'tag-brand'; else if(lead.corretora === 'BV Pinho') t = 'tag-bvpinho'; else if(lead.corretora === 'DC Teodoro') t = 'tag-dcteodoro'; else if(lead.corretora === 'Aguiar Corretora') t = 'tag-aguiar'; else if(lead.corretora === 'Corretora Caslu') t = 'tag-caslu'; else if(lead.corretora === 'Lumenza') t = 'tag-lumenza';
+                    let t = 'tag-outra'; 
+                    if(lead.corretora === 'Brand Seguros') t = 'tag-brand'; 
+                    else if(lead.corretora === 'BV Pinho') t = 'tag-bvpinho'; 
+                    else if(lead.corretora === 'DC Teodoro') t = 'tag-dcteodoro'; 
+                    else if(lead.corretora === 'Aguiar Corretora') t = 'tag-aguiar'; 
+                    else if(lead.corretora === 'Corretora Caslu') t = 'tag-caslu'; 
+                    else if(lead.corretora === 'Lumenza') t = 'tag-lumenza';
+
                     card.innerHTML = `<span class="tag-corretora ${t}" style="margin-bottom:0;">${lead.corretora || 'Enviado'}</span><h3>${lead.nome}</h3><div class="telefone">📞 ${telVisual}</div>${infoHTML}`;
                     cEnviados.appendChild(card);
                 }
 
+                // --- LINHA TABELA ---
                 const tr = document.createElement('tr');
-                tr.style.animationDelay = `${index * 0.04}s`;
                 let statusTable = ''; let acoesTable = '';
 
                 if (lead.status === 'para_envio') {
                     statusTable = `<strong style="color: #F6993F;">Pendente</strong>`;
                     acoesTable = `
                         <select id="select-tabela-${lead.id}" style="padding: 5px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.8rem; outline: none;">
-                            <option value="" disabled selected>Corretora...</option><option value="Aguiar Corretora">Aguiar</option><option value="BV Pinho">BV Pinho</option><option value="Brand Seguros">Brand</option><option value="Corretora Caslu">Caslu</option><option value="DC Teodoro">Teodoro</option><option value="Lumenza">Lumenza</option><option value="Outra">Outra</option>
+                            <option value="" disabled selected>Corretora...</option>
+                            <option value="Aguiar Corretora">Aguiar</option><option value="BV Pinho">BV Pinho</option><option value="Brand Seguros">Brand</option><option value="Corretora Caslu">Caslu</option><option value="DC Teodoro">Teodoro</option><option value="Lumenza">Lumenza</option><option value="Outra">Outra</option>
                         </select>
                         <button style="background: var(--chumbo-escuro); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;" onclick="moverParaEnviado(${lead.id}, 'tabela')">Enviar</button>
                     `;
                 } else {
-                    let t = 'tag-outra'; if(lead.corretora === 'Brand Seguros') t = 'tag-brand'; else if(lead.corretora === 'BV Pinho') t = 'tag-bvpinho'; else if(lead.corretora === 'DC Teodoro') t = 'tag-dcteodoro'; else if(lead.corretora === 'Aguiar Corretora') t = 'tag-aguiar'; else if(lead.corretora === 'Corretora Caslu') t = 'tag-caslu'; else if(lead.corretora === 'Lumenza') t = 'tag-lumenza';
+                    let t = 'tag-outra'; 
+                    if(lead.corretora === 'Brand Seguros') t = 'tag-brand'; 
+                    else if(lead.corretora === 'BV Pinho') t = 'tag-bvpinho'; 
+                    else if(lead.corretora === 'DC Teodoro') t = 'tag-dcteodoro'; 
+                    else if(lead.corretora === 'Aguiar Corretora') t = 'tag-aguiar'; 
+                    else if(lead.corretora === 'Corretora Caslu') t = 'tag-caslu'; 
+                    else if(lead.corretora === 'Lumenza') t = 'tag-lumenza';
+
                     statusTable = `<span class="tag-corretora ${t}" style="margin:0;">${lead.corretora}</span>`;
                     acoesTable = `<span style="color: #38C172; font-weight: bold;">✔ Enviado</span>`;
                 }
@@ -355,7 +406,18 @@
                 cTabela.appendChild(tr);
             });
 
-            document.getElementById('count-envio').innerText = contEnvio; document.getElementById('count-enviados').innerText = contEnviados;
+            // Botão "Carregar Mais" se houver mais dados
+            const loadMoreHtml = temMaisDados ? `<div class="load-more-container"><button class="btn-carregar-mais" onclick="carregarMaisLeads(false)">Carregar Mais Leads...</button></div>` : `<div style="text-align:center; padding:15px; color:#888; font-size:0.85rem;">Fim dos resultados.</div>`;
+            
+            // Adicionar botão no Kanban (no final de ambas as colunas ou rodapé) e na Tabela
+            let existingLoad = document.getElementById('load-more-wrapper');
+            if (!existingLoad) {
+                existingLoad = document.createElement('div');
+                existingLoad.id = 'load-more-wrapper';
+                document.getElementById('view-kanban').appendChild(existingLoad);
+            }
+            existingLoad.innerHTML = loadMoreHtml;
+            document.getElementById('load-more-table-container').innerHTML = loadMoreHtml;
         }
 
         async function moverParaEnviado(id, view) {
@@ -364,11 +426,14 @@
             
             if (!corretoraEscolhida) return alert("Selecione uma corretora antes de enviar!");
             
-            const lead = leads.find(l => l.id === id);
+            const lead = leadsCarregados.find(l => l.id === id);
             const textoParaCopiar = `Nome: ${lead.nome}\nWhatsApp: ${formatarTelefone(lead.whatsapp)}\nIdades: ${formatarDado(lead.quantidade_vidas)}\nCidade: ${formatarDado(lead.cidade)}\nTem CNPJ: ${formatarDado(lead.possui_cnpj)}\nTem plano: ${formatarDado(lead.tem_plano)}`;
             try { await navigator.clipboard.writeText(textoParaCopiar); mostrarToast(); } catch (err) { alert("Erro ao copiar o texto automaticamente."); }
+            
             await supabaseClient.from('leads').update({ status: 'enviado', corretora: corretoraEscolhida, data_envio: new Date().toISOString() }).eq('id', id);
-            carregarLeads();
+            
+            await carregarContadoresTotais();
+            carregarMaisLeads(true);
         }
 
         function processarPlanilha(event) {
@@ -377,18 +442,40 @@
             reader.onload = async function(e) {
                 const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
                 const rawLeads = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-                const insertData = rawLeads.map(row => { return { nome: row['NOME'] || 'Sem Nome', whatsapp: limparNumero(row['WHATSAPP']), cidade: row['cidade'] || null, quantidade_vidas: row['QUANTIDADE DE VIDAS'] ? String(row['QUANTIDADE DE VIDAS']) : null, possui_cnpj: row['POSSUI CNPJ'] || null, tem_plano: row['JÁ TEM PLANO? SE SIM QUAL?'] || null, observacao: row['OBSERVAÇÃO'] || null, corretora: row['Enviados corretora'] || null, status: row['Enviados corretora'] ? 'enviado' : 'para_envio' }; }).filter(lead => lead.whatsapp !== ''); 
+                const insertData = rawLeads.map(row => ({ 
+                    nome: row['NOME'] || 'Sem Nome', 
+                    whatsapp: limparNumero(row['WHATSAPP']), 
+                    cidade: row['cidade'] || null, 
+                    quantidade_vidas: row['QUANTIDADE DE VIDAS'] ? String(row['QUANTIDADE DE VIDAS']) : null, 
+                    possui_cnpj: row['POSSUI CNPJ'] || null, 
+                    tem_plano: row['JÁ TEM PLANO? SE SIM QUAL?'] || null, 
+                    observacao: row['OBSERVAÇÃO'] || null, 
+                    corretora: row['Enviados corretora'] || null, 
+                    status: row['Enviados corretora'] ? 'enviado' : 'para_envio' 
+                })).filter(lead => lead.whatsapp !== ''); 
+
                 const { error } = await supabaseClient.from('leads').upsert(insertData, { onConflict: 'whatsapp', ignoreDuplicates: true });
-                if(error) alert("Erro ao importar a planilha."); else { alert("Importação concluída!"); carregarLeads(); }
+                if(error) alert("Erro ao importar a planilha."); 
+                else { alert("Importação concluída!"); inicializarCRM(); }
                 event.target.value = ''; 
             }; reader.readAsArrayBuffer(file);
         }
 
         async function salvarLeadManual() {
-            const nome = document.getElementById('inputNome').value; const numeroBruto = document.getElementById('inputNumero').value;
+            const nome = document.getElementById('inputNome').value; 
+            const numeroBruto = document.getElementById('inputNumero').value;
             if(!nome || !numeroBruto) return alert("Nome e WhatsApp obrigatórios!");
-            const { error } = await supabaseClient.from('leads').insert([{ nome: nome, whatsapp: limparNumero(numeroBruto), quantidade_vidas: document.getElementById('inputVidas').value, possui_cnpj: document.getElementById('inputCnpj').value, status: 'para_envio' }]);
-            if (error) { error.code === '23505' ? alert("Número já cadastrado!") : alert("Erro ao salvar."); } else { fecharModal(); carregarLeads(); }
+            
+            const { error } = await supabaseClient.from('leads').insert([{ 
+                nome: nome, 
+                whatsapp: limparNumero(numeroBruto), 
+                quantidade_vidas: document.getElementById('inputVidas').value, 
+                possui_cnpj: document.getElementById('inputCnpj').value, 
+                status: 'para_envio' 
+            }]);
+
+            if (error) { error.code === '23505' ? alert("Número já cadastrado!") : alert("Erro ao salvar."); } 
+            else { fecharModal(); inicializarCRM(); }
         }
 
         function abrirModal() { document.getElementById('modalNovoLead').style.display = 'flex'; }
